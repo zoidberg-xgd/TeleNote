@@ -19,12 +19,12 @@
 
 ```bash
 # 下载脚本并运行
-curl -O https://raw.githubusercontent.com/<your-github-username>/tapnote/master/deploy_pa.sh
+curl -O https://raw.githubusercontent.com/zoidberg-xgd/tapnote/master/deploy_pa.sh
 chmod +x deploy_pa.sh
 source deploy_pa.sh
 ```
 
-> 注意：请将 `<your-github-username>` 替换为您的 GitHub 用户名。或者，您可以先克隆仓库，然后直接运行仓库里的 `source deploy_pa.sh`。
+> 注意：您可以先克隆仓库，然后直接运行仓库里的 `source deploy_pa.sh`。
 
 脚本运行完成后，它会提示您在 **Web** 选项卡中需要手动配置的最后几步（因为这些无法通过脚本在免费账户中自动完成）。
 
@@ -40,10 +40,10 @@ source deploy_pa.sh
 
 1. 登录后，点击右上角的 **Consoles** 选项卡。
 2. 点击 **Bash** 启动一个命令行终端。
-3. 在终端中输入以下命令来克隆您的仓库（将 `<your-github-username>` 替换为您的 GitHub 用户名）：
+3. 在终端中输入以下命令来克隆您的仓库：
 
 ```bash
-git clone https://github.com/<your-github-username>/tapnote.git
+git clone https://github.com/zoidberg-xgd/tapnote.git
 cd tapnote
 ```
 
