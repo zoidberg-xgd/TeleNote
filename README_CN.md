@@ -95,17 +95,7 @@ python manage.py test
 
 # 生成覆盖率报告
 ./run_tests.sh --coverage
-
-# 更多详情请参阅 TESTING.md
 ```
-
-### 测试覆盖率
-
-- ✅ 模型测试（笔记创建、验证、时间戳）
-- ✅ 视图测试（所有端点和边界情况）
-- ✅ 辅助函数测试（Markdown 处理、YouTube 嵌入）
-- ✅ OpenAI 集成测试
-- ✅ 端到端工作流测试
 
 ## 贡献
 

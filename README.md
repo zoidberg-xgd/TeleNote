@@ -9,11 +9,6 @@ TapNote is a minimalist, self-hosted publishing platform inspired by Telegra.ph,
 > Check out the report on creating TapNote on [dev.to](https://dev.to/vorniches/building-self-hosted-telegraph-in-1-prompt-and-3-minutes-2li2) or [YouTube](https://youtu.be/ArPGGaG5EU8).
 
 ![Demo](media/demo.gif)
-<p align="center">
-  <a href="https://tapnote-production.up.railway.app/" target="_blank" style="text-decoration:none;">
-    <img src="https://img.shields.io/badge/Live%20Demo-Tap%20Here-blue?style=for-the-badge" alt="Live Demo">
-  </a>
-</p>
 
 ## Features
 
@@ -100,17 +95,7 @@ python manage.py test
 
 # With coverage report
 ./run_tests.sh --coverage
-
-# For more details, see TESTING.md
 ```
-
-### Test Coverage
-
-- ✅ Model tests (Note creation, validation, timestamps)
-- ✅ View tests (all endpoints and edge cases)
-- ✅ Helper function tests (markdown processing, YouTube embeds)
-- ✅ OpenAI integration tests
-- ✅ End-to-end workflow tests
 
 ## Contributing
 
