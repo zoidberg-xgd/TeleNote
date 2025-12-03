@@ -439,10 +439,12 @@
       }
     }
     
-    // 检查是否是文章作者
-    if (typeof window !== "undefined" && window.TAPNOTE_EDIT_TOKEN) {
-      editToken = window.TAPNOTE_EDIT_TOKEN;
-      isAuthor = true;
+    // 检查是否是文章作者（支持多种方式：data-edit-token属性、PARANOTE_EDIT_TOKEN或TAPNOTE_EDIT_TOKEN）
+    if (typeof window !== "undefined") {
+      editToken = script.dataset.editToken || window.PARANOTE_EDIT_TOKEN || window.TAPNOTE_EDIT_TOKEN;
+      if (editToken) {
+        isAuthor = true;
+      }
     }
     
     // 更新头部评论数
