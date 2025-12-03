@@ -1,8 +1,18 @@
 # TapNote
 
-[English](README.md) | [中文](README_CN.md)
+[English](README.md) | [中文](README_CN.md) | [Fork 改进说明](FORK_NOTES.md)
 
 > 本项目 Fork 自 [vorniches/tapnote](https://github.com/vorniches/tapnote)
+
+**✨ 本 Fork 包含以下重要增强：**
+- 💬 **评论系统**：段落级评论，集成 ParaNote
+- 👍 **点赞功能**：支持对评论点赞
+- 📦 **数据迁移**：支持导入/导出 JSON 格式
+- 🚀 **PythonAnywhere 部署**：自动化部署脚本
+- 🧪 **测试与 CI/CD**：完整的测试套件和 GitHub Actions
+- 🛠️ **管理后台**：Django 管理界面
+
+> 查看 [FORK_NOTES.md](FORK_NOTES.md) 了解详细改进。
 
 TapNote 是一个极简的自托管发布平台，灵感来自 Telegra.ph，专注于基于 Markdown 的即时内容创作。它提供了无干扰的写作体验和即时发布功能，非常适合快速记录笔记、撰写博客文章或分享文档。
 
@@ -24,6 +34,14 @@ TapNote 是一个极简的自托管发布平台，灵感来自 Telegra.ph，专�
   - 通过安全令牌进行编辑
   - 正确渲染所有 Markdown 元素
   - 支持图片和代码片段
+
+- **增强功能（本 Fork）**
+  - 💬 **段落级评论**，集成 ParaNote
+  - 👍 **评论点赞系统**
+  - 📦 **数据迁移**（导入/导出 JSON）
+  - 🚀 **PythonAnywhere 自动化部署**
+  - 🧪 **完整测试套件**和 CI/CD
+  - 🛠️ **Django 管理后台**
 
 ## 快速开始
 

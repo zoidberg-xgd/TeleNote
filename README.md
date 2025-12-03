@@ -1,8 +1,18 @@
 # TapNote
 
-[中文](README_CN.md)
+[中文](README_CN.md) | [Fork 改进说明](FORK_NOTES.md)
 
 > Forked from [vorniches/tapnote](https://github.com/vorniches/tapnote)
+
+**✨ This fork includes significant enhancements:**
+- 💬 **Comment System**: Paragraph-level comments with ParaNote integration
+- 👍 **Like Feature**: Like comments on notes
+- 📦 **Data Migration**: Import/Export notes as JSON
+- 🚀 **PythonAnywhere Deployment**: Automated deployment scripts
+- 🧪 **Testing & CI/CD**: Comprehensive test suite with GitHub Actions
+- 🛠️ **Admin Panel**: Django admin interface for content management
+
+> See [FORK_NOTES.md](FORK_NOTES.md) for detailed improvements.
 
 TapNote is a minimalist, self-hosted publishing platform inspired by Telegra.ph, focusing on instant Markdown-based content creation. It provides a distraction-free writing experience with instant publishing capabilities, making it perfect for quick notes, blog posts, or documentation sharing.
 
@@ -24,6 +34,14 @@ TapNote is a minimalist, self-hosted publishing platform inspired by Telegra.ph,
   - Edit functionality with secure tokens
   - Proper rendering of all Markdown elements
   - Support for images and code snippets
+
+- **Enhanced Features (This Fork)**
+  - 💬 **Paragraph-level comments** with ParaNote integration
+  - 👍 **Like system** for comments
+  - 📦 **Data migration** (import/export JSON)
+  - 🚀 **PythonAnywhere deployment** automation
+  - 🧪 **Comprehensive testing** with CI/CD
+  - 🛠️ **Django admin** interface
 
 ## Quick Start
 
