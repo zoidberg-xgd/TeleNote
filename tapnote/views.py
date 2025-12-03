@@ -1,16 +1,179 @@
 import markdown
 import json
+import hashlib
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import Http404, HttpResponse
+from django.http import Http404, HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.dateparse import parse_datetime
 from django.contrib.auth.models import User
 from django.contrib.auth import login
-from .models import Note
+from .models import Note, Comment, LikeRecord
 import re
 
 MAX_CONTENT_LENGTH = 200000
+
+def get_client_ip(request):
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+@csrf_exempt
+def api_comments(request):
+    if request.method == 'GET':
+        site_id = request.GET.get('siteId')
+        work_id = request.GET.get('workId')
+        chapter_id = request.GET.get('chapterId')
+        
+        if not all([site_id, work_id, chapter_id]):
+            return JsonResponse({'error': 'missing params'}, status=400)
+            
+        comments = Comment.objects.filter(site_id=site_id, work_id=work_id, chapter_id=chapter_id).order_by('created_at')
+        
+        # Determine current user identity for "liked" status
+        current_user_id = None
+        ip = get_client_ip(request)
+        if ip:
+             # Same logic as creation
+             ip_hash = hashlib.md5((ip + site_id).encode()).hexdigest()
+             current_user_id = f"ip_{ip_hash}"
+
+        # Get set of comment IDs liked by this user
+        liked_comment_ids = set()
+        if current_user_id:
+            liked_comment_ids = set(
+                LikeRecord.objects.filter(user_id=current_user_id, comment__in=comments)
+                .values_list('comment_id', flat=True)
+            )
+        
+        # Group by para_index
+        comments_by_para = {}
+        for c in comments:
+            idx = str(c.para_index)
+            if idx not in comments_by_para:
+                comments_by_para[idx] = []
+            
+            comments_by_para[idx].append({
+                'id': c.id,
+                'paraIndex': c.para_index,
+                'content': c.content,
+                'userName': c.user_name,
+                'userId': c.user_id,
+                'userAvatar': c.user_avatar,
+                'createdAt': c.created_at.isoformat(),
+                'likes': c.likes,
+                'contextText': c.context_text,
+                'isLiked': c.id in liked_comment_ids
+            })
+            
+        return JsonResponse({'commentsByPara': comments_by_para})
+
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            site_id = data.get('siteId')
+            work_id = data.get('workId')
+            chapter_id = data.get('chapterId')
+            para_index = data.get('paraIndex')
+            content = data.get('content')
+            context_text = data.get('contextText')
+            
+            if not all([site_id, work_id, chapter_id]) or para_index is None or not content:
+                return JsonResponse({'error': 'missing fields'}, status=400)
+                
+            # Identity logic
+            user_name = "匿名"
+            user_id = None
+            ip = get_client_ip(request)
+            
+            if ip:
+                ip_hash = hashlib.md5((ip + site_id).encode()).hexdigest()
+                user_id = f"ip_{ip_hash}"
+                user_name = f"访客-{ip_hash[:6]}"
+            
+            comment = Comment.objects.create(
+                site_id=site_id,
+                work_id=work_id,
+                chapter_id=chapter_id,
+                para_index=para_index,
+                content=content,
+                user_name=user_name,
+                user_id=user_id,
+                context_text=context_text,
+                ip=ip
+            )
+            
+            return JsonResponse({
+                'id': comment.id,
+                'paraIndex': comment.para_index,
+                'content': comment.content,
+                'userName': comment.user_name,
+                'userId': comment.user_id,
+                'createdAt': comment.created_at.isoformat(),
+                'likes': comment.likes
+            }, status=201)
+            
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+    elif request.method == 'DELETE':
+        if not request.user.is_staff:
+             return JsonResponse({'error': 'permission denied'}, status=403)
+             
+        try:
+            data = json.loads(request.body)
+            comment_id = data.get('commentId')
+            Comment.objects.filter(id=comment_id).delete()
+            return JsonResponse({'success': True})
+        except Exception as e:
+             return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'method not allowed'}, status=405)
+
+@csrf_exempt
+def api_like_comment(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            comment_id = data.get('commentId')
+            site_id = data.get('siteId')
+            
+            if not comment_id or not site_id:
+                 return JsonResponse({'error': 'missing commentId or siteId'}, status=400)
+
+            comment = get_object_or_404(Comment, id=comment_id)
+            
+            # Identity logic
+            ip = get_client_ip(request)
+            user_id = None
+            
+            if ip:
+                ip_hash = hashlib.md5((ip + site_id).encode()).hexdigest()
+                user_id = f"ip_{ip_hash}"
+            
+            if not user_id:
+                 return JsonResponse({'error': 'cannot identify user'}, status=400)
+
+            # Check if already liked
+            if LikeRecord.objects.filter(comment=comment, user_id=user_id).exists():
+                return JsonResponse({'error': 'already liked', 'likes': comment.likes}, status=400)
+            
+            # Create record and increment
+            try:
+                LikeRecord.objects.create(comment=comment, user_id=user_id, ip=ip)
+                comment.likes += 1
+                comment.save()
+            except Exception as e:
+                # Handle race condition or unique constraint violation
+                return JsonResponse({'error': 'already liked', 'likes': comment.likes}, status=400)
+            
+            return JsonResponse({'likes': comment.likes})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'method not allowed'}, status=405)
 
 def apply_strikethrough(md_text):
     # Replace ~~something~~ with <del>something</del>

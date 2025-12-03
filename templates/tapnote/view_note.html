@@ -1,4 +1,5 @@
 {% extends 'tapnote/base.html' %}
+{% load static %}
 
 {% block content %}
 <div class="container mx-auto px-4 py-8 max-w-3xl">
@@ -21,9 +22,9 @@
 {% block extra_js %}
 <!-- ParaNote Integration -->
 <script
-  async
-  src="http://localhost:4000/public/embed.js"
-  data-site-id="tapnote-local"
-  data-api-base="http://localhost:4000"
+  defer
+  src="{% static 'js/paranote.js' %}"
+  data-site-id="tapnote"
+  data-api-base=""
 ></script>
 {% endblock %} 

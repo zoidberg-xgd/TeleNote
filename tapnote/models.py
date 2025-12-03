@@ -17,4 +17,30 @@ class Note(models.Model):
             self.hashcode = uuid.uuid4().hex
         if not self.edit_token:
             self.edit_token = uuid.uuid4().hex
-        super().save(*args, **kwargs) 
+        super().save(*args, **kwargs)
+
+class Comment(models.Model):
+    site_id = models.CharField(max_length=100)
+    work_id = models.CharField(max_length=100)
+    chapter_id = models.CharField(max_length=100)
+    para_index = models.IntegerField()
+    content = models.TextField()
+    user_name = models.CharField(max_length=100, default="匿名")
+    user_id = models.CharField(max_length=100, null=True, blank=True)
+    user_avatar = models.CharField(max_length=255, null=True, blank=True)
+    context_text = models.TextField(null=True, blank=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+    likes = models.IntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.user_name}: {self.content[:20]}"
+
+class LikeRecord(models.Model):
+    comment = models.ForeignKey(Comment, on_delete=models.CASCADE, related_name='like_records')
+    user_id = models.CharField(max_length=100, null=True, blank=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [['comment', 'user_id'], ['comment', 'ip']] 
