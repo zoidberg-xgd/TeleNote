@@ -9,8 +9,21 @@
         </a>
     </div>
     {% endif %}
-    <div class="markdown-content">
+    <div class="markdown-content"
+         data-na-root
+         data-work-id="{{ note.hashcode }}"
+         data-chapter-id="main">
         {{ content|safe }}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<!-- ParaNote Integration -->
+<script
+  async
+  src="http://localhost:4000/public/embed.js"
+  data-site-id="tapnote-local"
+  data-api-base="http://localhost:4000"
+></script>
 {% endblock %} 
