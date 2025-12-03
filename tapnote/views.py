@@ -5,6 +5,8 @@ from django.views.decorators.csrf import csrf_exempt
 from .models import Note
 import re
 
+MAX_CONTENT_LENGTH = 200000
+
 def apply_strikethrough(md_text):
     # Replace ~~something~~ with <del>something</del>
     pattern = re.compile(r'~~(.*?)~~', re.DOTALL)
@@ -43,6 +45,11 @@ def home(request):
 def publish(request):
     if request.method == 'POST':
         content = request.POST.get('content', '').strip()
+        if len(content) > MAX_CONTENT_LENGTH:
+            return render(request, 'tapnote/editor.html', {
+                'error': f'Content exceeds the limit of {MAX_CONTENT_LENGTH} characters.',
+                'note': {'content': content}
+            })
         if content:
             note = Note.objects.create(content=content)
             response = redirect('view_note', hashcode=note.hashcode)
@@ -83,6 +90,13 @@ def edit_note(request, hashcode):
     
     if request.method == 'POST':
         content = request.POST.get('content', '').strip()
+        
+        if len(content) > MAX_CONTENT_LENGTH:
+            return render(request, 'tapnote/editor.html', {
+                'note': note,
+                'error': f'Content exceeds the limit of {MAX_CONTENT_LENGTH} characters.'
+            })
+            
         if content:
             note.content = content
             note.save()

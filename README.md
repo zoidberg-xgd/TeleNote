@@ -80,6 +80,11 @@ https://youtu.be/vz91QpgUjFc?si=6nTE2LeukJprXiw1
 
 > Note: For correct rendering of code exmaple remove `'` symbols.
 
+## Limitations
+
+- **Content Size**: For system stability, individual notes are limited to 200,000 characters.
+- **Upload Size**: The system enforces a maximum upload size of 2.5MB.
+
 ## Testing
 
 TapNote includes comprehensive unit and integration tests covering all major components.

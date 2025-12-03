@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', function() {
     const textarea = document.querySelector('textarea[name="content"]');
+    const form = document.querySelector('form');
+    const MAX_LENGTH = 200000; // 200k characters limit
+
     if (textarea) {
         // Auto-grow function
         function autoGrow(elem) {
@@ -18,6 +21,16 @@ document.addEventListener('DOMContentLoaded', function() {
         textarea.addEventListener('input', function() {
             autoGrow(textarea);
         });
+
+        // Form submission validation
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                if (textarea.value.length > MAX_LENGTH) {
+                    e.preventDefault();
+                    alert(`Content is too long! Please reduce it to under ${MAX_LENGTH} characters. Current: ${textarea.value.length}`);
+                }
+            });
+        }
 
         // Initialize on load
         autoGrow(textarea);
