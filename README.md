@@ -14,8 +14,6 @@ TapNote is a minimalist, self-hosted publishing platform inspired by Telegra.ph,
 
 > See [FEATURES.md](FEATURES.md) for detailed features and improvements.
 
-> Check out the report on creating TapNote on [dev.to](https://dev.to/vorniches/building-self-hosted-telegraph-in-1-prompt-and-3-minutes-2li2) or [YouTube](https://youtu.be/ArPGGaG5EU8).
-
 ![Demo](media/demo.gif)
 
 ## Features
