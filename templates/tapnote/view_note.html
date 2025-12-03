@@ -27,4 +27,10 @@
   data-site-id="tapnote"
   data-api-base=""
 ></script>
+{% if can_edit %}
+<script>
+  // Make edit token available to ParaNote script
+  window.TAPNOTE_EDIT_TOKEN = "{{ note.edit_token }}";
+</script>
+{% endif %}
 {% endblock %} 

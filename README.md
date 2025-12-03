@@ -9,7 +9,6 @@ TapNote is a minimalist, self-hosted publishing platform inspired by Telegra.ph,
 - 👍 **Like Feature**: Like comments on notes
 - 📦 **Data Migration**: Import/Export notes as JSON
 - 🚀 **PythonAnywhere Deployment**: Automated deployment scripts
-- 🧪 **Testing & CI/CD**: Comprehensive test suite with GitHub Actions
 - 🛠️ **Admin Panel**: Django admin interface for content management
 
 > See [FEATURES.md](FEATURES.md) for detailed features and improvements.

@@ -120,12 +120,35 @@ def api_comments(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     elif request.method == 'DELETE':
-        if not request.user.is_staff:
-             return JsonResponse({'error': 'permission denied'}, status=403)
-             
         try:
             data = json.loads(request.body)
             comment_id = data.get('commentId')
+            work_id = data.get('workId')  # work_id is the note hashcode
+            
+            if not comment_id:
+                return JsonResponse({'error': 'missing commentId'}, status=400)
+            
+            comment = get_object_or_404(Comment, id=comment_id)
+            
+            # Check if user is admin
+            is_admin = request.user.is_staff
+            
+            # Check if user is the note author
+            is_author = False
+            if work_id:
+                try:
+                    note = Note.objects.get(hashcode=work_id)
+                    # Check edit token from cookie or request
+                    edit_token = request.COOKIES.get(f'edit_token_{work_id}') or data.get('editToken')
+                    if edit_token == note.edit_token:
+                        is_author = True
+                except Note.DoesNotExist:
+                    pass
+            
+            # Allow deletion if user is admin or author
+            if not (is_admin or is_author):
+                return JsonResponse({'error': 'permission denied'}, status=403)
+            
             Comment.objects.filter(id=comment_id).delete()
             return JsonResponse({'success': True})
         except Exception as e:
