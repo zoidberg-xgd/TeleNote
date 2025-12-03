@@ -166,7 +166,8 @@
     titleIcon.innerHTML = "📝"; // 图标
     
     const title = document.createElement("span");
-    title.textContent = "Annotations";
+    // Use generic title (can be customized via data attribute)
+    title.textContent = root.dataset.sidebarTitle || "Annotations";
     title.style.fontWeight = "600";
     title.style.fontSize = "15px";
     
@@ -227,9 +228,10 @@
       flexShrink: 0
     });
 
-    const textarea = document.createElement("textarea");
-    textarea.placeholder = "添加评论...";
-    Object.assign(textarea.style, {
+        const textarea = document.createElement("textarea");
+        // Use generic placeholder (can be customized via data attribute)
+        textarea.placeholder = root.dataset.commentPlaceholder || "添加评论...";
+        Object.assign(textarea.style, {
       width: "100%",
       minHeight: "80px",
       boxSizing: "border-box",
@@ -256,8 +258,9 @@
     btnRow.style.display = "flex";
     btnRow.style.justifyContent = "flex-end";
 
-    const btn = document.createElement("button");
-    btn.textContent = "发布";
+        const btn = document.createElement("button");
+        // Use generic button text (can be customized via data attribute)
+        btn.textContent = root.dataset.submitButtonText || "发布";
     Object.assign(btn.style, {
       padding: "8px 20px",
       border: "none",
@@ -277,19 +280,33 @@
       const content = textarea.value.trim();
       if (!content || currentParaIndex == null) return;
       
+      // Input validation
+      const MAX_COMMENT_LENGTH = 10000;
+      if (content.length > MAX_COMMENT_LENGTH) {
+        alert(`评论内容过长，最多${MAX_COMMENT_LENGTH}个字符`);
+        return;
+      }
+      
+      // Validate para_index
+      if (typeof currentParaIndex !== 'number' || currentParaIndex < 0 || currentParaIndex >= paras.length) {
+        console.error("Invalid para index");
+        return;
+      }
+      
       // 获取当前段落的上下文指纹 (前32个字符)
-      const pText = paras[currentParaIndex] ? paras[currentParaIndex].textContent.trim() : "";
+      const pText = paras[currentParaIndex] ? getParaText(paras[currentParaIndex]) : "";
       const contextText = pText.slice(0, 32);
 
       try {
-        btn.textContent = "发送中...";
+        // Use generic loading text (can be customized via data attribute)
+        btn.textContent = root.dataset.submittingText || "发送中...";
         btn.disabled = true;
         const headers = { "Content-Type": "application/json" };
         if (typeof window !== "undefined" && window.PARANOTE_TOKEN) {
           headers["X-Paranote-Token"] = window.PARANOTE_TOKEN;
         }
 
-        await fetch(apiBase + "/api/v1/comments", {
+        const response = await fetch(apiBase + "/api/v1/comments", {
           method: "POST",
           headers,
           body: JSON.stringify({
@@ -301,15 +318,22 @@
             contextText, // 发送指纹
           }),
         });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || "发送失败");
+        }
+        
         textarea.value = "";
         await loadAllComments();
         updateCommentCounts();
         await loadComments(currentParaIndex, list, sidebar.headerCount);
       } catch (e) {
         console.error("post comment failed", e);
-        alert("发送失败");
+        alert(e.message || "发送失败");
       } finally {
-        btn.textContent = "发布";
+        // Restore original button text
+        btn.textContent = root.dataset.submitButtonText || "发布";
         btn.disabled = false;
       }
     };
@@ -452,13 +476,25 @@
       headerCountEl.textContent = arr.length > 0 ? arr.length + "条" : "";
     }
     
-    if (!arr.length) {
-      const empty = document.createElement("div");
-      empty.style.cssText = "padding: 60px 20px; text-align: center; color: #999; font-size: 13px; background: #fff;";
-      empty.innerHTML = '<div style="margin-bottom: 8px; font-size: 32px; opacity: 0.5;">💬</div><div>还没有人发表评论</div>';
-      listEl.appendChild(empty);
-      return;
-    }
+        if (!arr.length) {
+          const empty = document.createElement("div");
+          empty.style.cssText = "padding: 60px 20px; text-align: center; color: #999; font-size: 13px; background: #fff;";
+          
+          // Use textContent for safe rendering
+          const icon = document.createElement("div");
+          icon.style.cssText = "margin-bottom: 8px; font-size: 32px; opacity: 0.5;";
+          icon.textContent = "💬";
+          
+          const text = document.createElement("div");
+          // Use generic message (can be customized via data attribute)
+          const emptyMessage = root.dataset.emptyMessage || "还没有人发表评论";
+          text.textContent = emptyMessage;
+          
+          empty.appendChild(icon);
+          empty.appendChild(text);
+          listEl.appendChild(empty);
+          return;
+        }
     
     arr.forEach(function (c, idx) {
       const item = document.createElement("div");
@@ -565,7 +601,7 @@
       // 删除按钮（管理员或作者都可以删除）
       if (isAdmin || isAuthor) {
         const delBtn = document.createElement("button");
-        delBtn.innerHTML = "🗑️";
+        delBtn.textContent = "🗑️"; // Use textContent for emoji
         delBtn.title = isAuthor ? "删除（作者）" : "删除（管理员）";
         delBtn.style.cssText = "border:none; background:transparent; cursor:pointer; color:#aaa; font-size:14px; margin-right: 12px; transition:color 0.2s;";
         delBtn.onmouseenter = () => delBtn.style.color = "#bd1c2b";
@@ -576,9 +612,17 @@
              const headers = { "Content-Type": "application/json" };
              if (token) headers["X-Paranote-Token"] = token;
              
-             const deleteData = { siteId, workId, chapterId, commentId: c.id };
+             // Validate commentId is numeric
+             const commentId = parseInt(c.id);
+             if (isNaN(commentId)) {
+               console.error("Invalid comment ID");
+               alert("删除失败：无效的评论ID");
+               return;
+             }
+             
+             const deleteData = { siteId, workId, chapterId, commentId: commentId };
              if (editToken) {
-               deleteData.editToken = editToken;
+               deleteData.editToken = String(editToken); // Ensure it's a string
              }
              
              const res = await fetch(apiBase + "/api/v1/comments", {
@@ -592,7 +636,8 @@
                  await loadComments(paraIndex, listEl, headerCountEl);
              } else {
                  const errorData = await res.json().catch(() => ({}));
-                 alert(errorData.error || "删除失败");
+                 // Don't expose detailed error messages to users
+                 alert("删除失败");
              }
           } catch(e) { 
              console.error(e);
@@ -604,8 +649,22 @@
       
       // 点赞按钮
       const likeBtn = document.createElement("button");
-      const likes = c.likes || 0;
-      likeBtn.innerHTML = `<span style="font-size:14px">❤️</span> <span style="margin-left:4px; font-size:12px;">${likes || ''}</span>`;
+      // Ensure likes is a safe number
+      const likes = (typeof c.likes === 'number' && c.likes >= 0) ? c.likes : 0;
+      const likesText = String(likes);
+      
+      // Use textContent for safe rendering, then add emoji via innerHTML (safe)
+      const likeIcon = document.createElement("span");
+      likeIcon.style.fontSize = "14px";
+      likeIcon.textContent = "❤️";
+      
+      const likeCount = document.createElement("span");
+      likeCount.style.marginLeft = "4px";
+      likeCount.style.fontSize = "12px";
+      likeCount.textContent = likesText;
+      
+      likeBtn.appendChild(likeIcon);
+      likeBtn.appendChild(likeCount);
       likeBtn.style.cssText = "border:none; background:transparent; cursor:pointer; color:#aaa; display:flex; align-items:center; padding: 2px 6px; transition:color 0.2s; border-radius:4px;";
       
       likeBtn.onmouseenter = () => { likeBtn.style.color = "#bd1c2b"; likeBtn.style.background = "#fff0f0"; };
@@ -613,24 +672,39 @@
 
       likeBtn.onclick = async function() {
           try {
+             // Validate commentId
+             const commentId = parseInt(c.id);
+             if (isNaN(commentId)) {
+               console.error("Invalid comment ID");
+               return;
+             }
+             
              const headers = { "Content-Type": "application/json" };
              if (token) headers["X-Paranote-Token"] = token;
              
              const res = await fetch(apiBase + "/api/v1/comments/like", {
                  method: "POST",
                  headers,
-                 body: JSON.stringify({ siteId, workId, chapterId, commentId: c.id })
+                 body: JSON.stringify({ siteId, workId, chapterId, commentId: commentId })
              });
              
-             if(res.status === 401) return alert("请登录后再点赞");
-             if(res.status === 400) return alert("您已经点过赞了");
+             const loginRequiredMsg = root.dataset.loginRequired || "请登录后再点赞";
+             const alreadyLikedMsg = root.dataset.alreadyLiked || "您已经点过赞了";
+             if(res.status === 401) return alert(loginRequiredMsg);
+             if(res.status === 400) return alert(alreadyLikedMsg);
 
              if(res.ok) {
                  const data = await res.json();
-                 likeBtn.innerHTML = `<span style="font-size:14px">❤️</span> <span style="margin-left:4px; font-weight:bold; color:#bd1c2b">${data.likes}</span>`;
+                 const newLikes = (typeof data.likes === 'number' && data.likes >= 0) ? data.likes : 0;
+                 likeCount.textContent = String(newLikes);
+                 likeCount.style.fontWeight = "bold";
+                 likeCount.style.color = "#bd1c2b";
                  likeBtn.style.color = "#bd1c2b";
              }
-          } catch(e) { console.error(e); }
+          } catch(e) { 
+             console.error(e);
+             alert("点赞失败");
+          }
       };
 
       actionContainer.appendChild(likeBtn);
@@ -683,8 +757,9 @@
         boxSizing: "border-box",
       });
       
-      badge.textContent = count;
-      badge.title = count + " 条评论";
+          badge.textContent = count;
+          const commentLabel = root.dataset.commentLabel || "条评论";
+          badge.title = count + " " + commentLabel;
       
       // 移除之前的特殊样式 override
       badge.style.fontSize = isMobile ? "11px" : "10px";

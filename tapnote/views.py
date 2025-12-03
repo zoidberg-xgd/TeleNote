@@ -12,6 +12,30 @@ from .models import Note, Comment, LikeRecord
 import re
 
 MAX_CONTENT_LENGTH = 200000
+MAX_COMMENT_LENGTH = 10000  # 评论内容最大长度
+MAX_CONTEXT_TEXT_LENGTH = 100  # 上下文指纹最大长度
+MAX_ID_LENGTH = 100  # ID字段最大长度
+MAX_PARA_INDEX = 100000  # 段落索引最大值（防止DoS）
+
+def constant_time_compare(val1, val2):
+    """Constant-time string comparison to prevent timing attacks."""
+    if len(val1) != len(val2):
+        return False
+    result = 0
+    for x, y in zip(val1, val2):
+        result |= ord(x) ^ ord(y)
+    return result == 0
+
+def validate_id_field(value, field_name, max_length=MAX_ID_LENGTH):
+    """Validate ID field format and length."""
+    if not value or not isinstance(value, str):
+        return False
+    if len(value) > max_length:
+        return False
+    # Allow alphanumeric, dash, underscore, and dot
+    if not re.match(r'^[a-zA-Z0-9._-]+$', value):
+        return False
+    return True
 
 def get_client_ip(request):
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
@@ -29,7 +53,13 @@ def api_comments(request):
         chapter_id = request.GET.get('chapterId')
         
         if not all([site_id, work_id, chapter_id]):
-            return JsonResponse({'error': 'missing params'}, status=400)
+            return JsonResponse({'error': 'missing_params'}, status=400)
+        
+        # Validate ID fields
+        if not validate_id_field(site_id, 'siteId') or \
+           not validate_id_field(work_id, 'workId') or \
+           not validate_id_field(chapter_id, 'chapterId'):
+            return JsonResponse({'error': 'invalid_id_format'}, status=400)
             
         comments = Comment.objects.filter(site_id=site_id, work_id=work_id, chapter_id=chapter_id).order_by('created_at')
         
@@ -81,18 +111,47 @@ def api_comments(request):
             content = data.get('content')
             context_text = data.get('contextText')
             
+            # Input validation
             if not all([site_id, work_id, chapter_id]) or para_index is None or not content:
-                return JsonResponse({'error': 'missing fields'}, status=400)
+                return JsonResponse({'error': 'missing_fields'}, status=400)
+            
+            # Validate ID fields
+            if not validate_id_field(site_id, 'siteId') or \
+               not validate_id_field(work_id, 'workId') or \
+               not validate_id_field(chapter_id, 'chapterId'):
+                return JsonResponse({'error': 'invalid_id_format'}, status=400)
+            
+            # Validate para_index
+            if not isinstance(para_index, int) or para_index < 0 or para_index > MAX_PARA_INDEX:
+                return JsonResponse({'error': 'invalid_para_index'}, status=400)
+            
+            # Validate content length
+            if not isinstance(content, str) or len(content.strip()) == 0:
+                return JsonResponse({'error': 'empty_content'}, status=400)
+            if len(content) > MAX_COMMENT_LENGTH:
+                return JsonResponse({'error': 'content_too_long'}, status=400)
+            
+            # Validate context_text if provided
+            if context_text and (not isinstance(context_text, str) or len(context_text) > MAX_CONTEXT_TEXT_LENGTH):
+                return JsonResponse({'error': 'invalid_context_text'}, status=400)
+            
+            # Sanitize content (strip whitespace)
+            content = content.strip()
+            if context_text:
+                context_text = context_text.strip()
                 
             # Identity logic
-            user_name = "匿名"
+            DEFAULT_ANONYMOUS_NAME = "匿名"
+            GUEST_NAME_PREFIX = "访客-"
+            
+            user_name = DEFAULT_ANONYMOUS_NAME
             user_id = None
             ip = get_client_ip(request)
             
             if ip:
                 ip_hash = hashlib.md5((ip + site_id).encode()).hexdigest()
                 user_id = f"ip_{ip_hash}"
-                user_name = f"访客-{ip_hash[:6]}"
+                user_name = f"{GUEST_NAME_PREFIX}{ip_hash[:6]}"
             
             comment = Comment.objects.create(
                 site_id=site_id,
@@ -116,43 +175,65 @@ def api_comments(request):
                 'likes': comment.likes
             }, status=201)
             
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'invalid_json'}, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
+            # Don't expose internal error details
+            return JsonResponse({'error': 'internal_error'}, status=500)
 
     elif request.method == 'DELETE':
         try:
             data = json.loads(request.body)
             comment_id = data.get('commentId')
             work_id = data.get('workId')  # work_id is the note hashcode
+            site_id = data.get('siteId')
+            chapter_id = data.get('chapterId')
             
             if not comment_id:
-                return JsonResponse({'error': 'missing commentId'}, status=400)
+                return JsonResponse({'error': 'missing_fields'}, status=400)
+            
+            # Validate comment_id is numeric
+            try:
+                comment_id = int(comment_id)
+            except (ValueError, TypeError):
+                return JsonResponse({'error': 'invalid_comment_id'}, status=400)
             
             comment = get_object_or_404(Comment, id=comment_id)
+            
+            # Verify comment belongs to the requested work/chapter if provided
+            if work_id and comment.work_id != work_id:
+                return JsonResponse({'error': 'comment_mismatch'}, status=400)
+            if site_id and comment.site_id != site_id:
+                return JsonResponse({'error': 'comment_mismatch'}, status=400)
+            if chapter_id and comment.chapter_id != chapter_id:
+                return JsonResponse({'error': 'comment_mismatch'}, status=400)
             
             # Check if user is admin
             is_admin = request.user.is_staff
             
-            # Check if user is the note author
+            # Check if user is the note author (using constant-time comparison)
             is_author = False
-            if work_id:
+            if work_id and validate_id_field(work_id, 'workId', max_length=32):
                 try:
                     note = Note.objects.get(hashcode=work_id)
-                    # Check edit token from cookie or request
+                    # Check edit token from cookie or request (constant-time comparison)
                     edit_token = request.COOKIES.get(f'edit_token_{work_id}') or data.get('editToken')
-                    if edit_token == note.edit_token:
+                    if edit_token and constant_time_compare(str(edit_token), str(note.edit_token)):
                         is_author = True
                 except Note.DoesNotExist:
                     pass
             
             # Allow deletion if user is admin or author
             if not (is_admin or is_author):
-                return JsonResponse({'error': 'permission denied'}, status=403)
+                return JsonResponse({'error': 'permission_denied'}, status=403)
             
             Comment.objects.filter(id=comment_id).delete()
             return JsonResponse({'success': True})
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'invalid_json'}, status=400)
         except Exception as e:
-             return JsonResponse({'error': str(e)}, status=500)
+            # Don't expose internal error details
+            return JsonResponse({'error': 'internal_error'}, status=500)
     
     return JsonResponse({'error': 'method not allowed'}, status=405)
 
@@ -165,9 +246,23 @@ def api_like_comment(request):
             site_id = data.get('siteId')
             
             if not comment_id or not site_id:
-                 return JsonResponse({'error': 'missing commentId or siteId'}, status=400)
+                 return JsonResponse({'error': 'missing_fields'}, status=400)
+            
+            # Validate site_id format
+            if not validate_id_field(site_id, 'siteId'):
+                return JsonResponse({'error': 'invalid_id_format'}, status=400)
+            
+            # Validate comment_id is numeric
+            try:
+                comment_id = int(comment_id)
+            except (ValueError, TypeError):
+                return JsonResponse({'error': 'invalid_comment_id'}, status=400)
 
             comment = get_object_or_404(Comment, id=comment_id)
+            
+            # Verify comment belongs to the requested site
+            if comment.site_id != site_id:
+                return JsonResponse({'error': 'comment_mismatch'}, status=400)
             
             # Identity logic
             ip = get_client_ip(request)
@@ -178,11 +273,11 @@ def api_like_comment(request):
                 user_id = f"ip_{ip_hash}"
             
             if not user_id:
-                 return JsonResponse({'error': 'cannot identify user'}, status=400)
+                 return JsonResponse({'error': 'cannot_identify_user'}, status=400)
 
             # Check if already liked
             if LikeRecord.objects.filter(comment=comment, user_id=user_id).exists():
-                return JsonResponse({'error': 'already liked', 'likes': comment.likes}, status=400)
+                return JsonResponse({'error': 'already_liked', 'likes': comment.likes}, status=400)
             
             # Create record and increment
             try:
@@ -191,12 +286,15 @@ def api_like_comment(request):
                 comment.save()
             except Exception as e:
                 # Handle race condition or unique constraint violation
-                return JsonResponse({'error': 'already liked', 'likes': comment.likes}, status=400)
+                return JsonResponse({'error': 'already_liked', 'likes': comment.likes}, status=400)
             
             return JsonResponse({'likes': comment.likes})
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'invalid_json'}, status=400)
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-    return JsonResponse({'error': 'method not allowed'}, status=405)
+            # Don't expose internal error details
+            return JsonResponse({'error': 'internal_error'}, status=500)
+    return JsonResponse({'error': 'method_not_allowed'}, status=405)
 
 def apply_strikethrough(md_text):
     # Replace ~~something~~ with <del>something</del>
@@ -270,6 +368,10 @@ def publish(request):
     return redirect('home')
 
 def view_note(request, hashcode):
+    # Validate hashcode format
+    if not re.match(r'^[a-f0-9]{32}$', hashcode):
+        raise Http404()
+    
     note = get_object_or_404(Note, hashcode=hashcode)
     
     # FIRST apply strikethrough by regex
@@ -280,9 +382,12 @@ def view_note(request, hashcode):
     html_content = md.convert(raw_with_del)
     html_content = process_markdown_links(html_content)
     
+    # Use constant-time comparison for edit token
+    cookie_token = request.COOKIES.get(f'edit_token_{note.hashcode}')
+    url_token = request.GET.get('token')
     can_edit = (
-        request.COOKIES.get(f'edit_token_{note.hashcode}') == note.edit_token or
-        request.GET.get('token') == note.edit_token
+        (cookie_token and constant_time_compare(str(cookie_token), str(note.edit_token))) or
+        (url_token and constant_time_compare(str(url_token), str(note.edit_token)))
     )
     
     return render(request, 'tapnote/view_note.html', {
@@ -293,11 +398,17 @@ def view_note(request, hashcode):
 
 @csrf_exempt
 def edit_note(request, hashcode):
+    # Validate hashcode format
+    if not re.match(r'^[a-f0-9]{32}$', hashcode):
+        raise Http404()
+    
     note = get_object_or_404(Note, hashcode=hashcode)
     edit_token = request.COOKIES.get(f'edit_token_{note.hashcode}')
     url_token = request.GET.get('token')
     
-    if edit_token != note.edit_token and url_token != note.edit_token:
+    # Use constant-time comparison
+    if not ((edit_token and constant_time_compare(str(edit_token), str(note.edit_token))) or
+            (url_token and constant_time_compare(str(url_token), str(note.edit_token)))):
         raise Http404()
     
     if request.method == 'POST':
