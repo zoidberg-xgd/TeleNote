@@ -473,7 +473,8 @@
     
     // 更新头部评论数
     if (headerCountEl) {
-      headerCountEl.textContent = arr.length > 0 ? arr.length + "条" : "";
+      const countText = root.dataset.countSuffix || "条";
+      headerCountEl.textContent = arr.length > 0 ? arr.length + countText : "";
     }
     
         if (!arr.length) {
@@ -607,7 +608,8 @@
         delBtn.onmouseenter = () => delBtn.style.color = "#bd1c2b";
         delBtn.onmouseleave = () => delBtn.style.color = "#aaa";
         delBtn.onclick = async function() {
-          if(!confirm("确定删除这条评论吗？")) return;
+          const confirmMessage = root.dataset.deleteConfirm || "确定删除这条评论吗？";
+          if(!confirm(confirmMessage)) return;
           try {
              const headers = { "Content-Type": "application/json" };
              if (token) headers["X-Paranote-Token"] = token;
