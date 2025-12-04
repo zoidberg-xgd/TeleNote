@@ -4,7 +4,11 @@
 
 TapNote 是一个极简的自托管发布平台，灵感来自 Telegra.ph，专注于基于 Markdown 的即时内容创作。它提供了无干扰的写作体验和即时发布功能，非常适合快速记录笔记、撰写博客文章或分享文档。
 
+[**🔴 在线演示 (Live Demo)**](https://zoidbergxgd.pythonanywhere.com/)
+
 **✨ 核心功能：**
+- 📝 **Telegra.ph 体验**：支持标题、作者字段，生成的短链接极易分享
+- 🖼️ **社交预览**：在 Telegram/微信/Twitter 分享时显示精美卡片
 - 💬 **评论系统**：段落级评论，集成 ParaNote
 - 👍 **点赞功能**：支持对评论点赞
 - 📦 **数据迁移**：支持导入/导出 JSON 格式
@@ -140,4 +144,3 @@ python manage.py test
 - 创建 issue 报告 bug 或请求新功能
 - 如果您觉得有用，请给仓库点个 Star
 - Fork 仓库以贡献代码或创建您自己的版本
-��库以贡献代码或创建您自己的版本

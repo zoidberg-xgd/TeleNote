@@ -4,7 +4,11 @@
 
 TapNote is a minimalist, self-hosted publishing platform inspired by Telegra.ph, focusing on instant Markdown-based content creation. It provides a distraction-free writing experience with instant publishing capabilities, making it perfect for quick notes, blog posts, or documentation sharing.
 
+[**🔴 Live Demo**](https://zoidbergxgd.pythonanywhere.com/)
+
 **✨ Key Features:**
+- 📝 **Telegra.ph Experience**: Supports Title & Author fields, Short URLs
+- 🖼️ **Social Preview**: Beautiful preview cards for Telegram/Twitter/WeChat
 - 💬 **Comment System**: Paragraph-level comments with ParaNote integration
 - 👍 **Like Feature**: Like comments on notes
 - 📦 **Data Migration**: Import/Export notes as JSON
