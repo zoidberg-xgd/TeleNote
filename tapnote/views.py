@@ -366,7 +366,8 @@ def publish(request):
         if content:
             note = Note.objects.create(content=content, title=title, author=author)
             response = redirect('view_note', hashcode=note.hashcode)
-            response.set_cookie(f'edit_token_{note.hashcode}', note.edit_token, max_age=31536000)
+            # Set cookie with SameSite=Lax for robustness
+            response.set_cookie(f'edit_token_{note.hashcode}', note.edit_token, max_age=31536000, samesite='Lax')
             return response
     return redirect('home')
 
@@ -388,10 +389,14 @@ def view_note(request, hashcode):
     # Use constant-time comparison for edit token
     cookie_token = request.COOKIES.get(f'edit_token_{note.hashcode}')
     url_token = request.GET.get('token')
-    can_edit = (
-        (cookie_token and constant_time_compare(str(cookie_token), str(note.edit_token))) or
-        (url_token and constant_time_compare(str(url_token), str(note.edit_token)))
-    )
+    
+    token_is_valid = False
+    if url_token and constant_time_compare(str(url_token), str(note.edit_token)):
+        token_is_valid = True
+    elif cookie_token and constant_time_compare(str(cookie_token), str(note.edit_token)):
+        token_is_valid = True
+        
+    can_edit = token_is_valid
     
     # Extract title and description for meta tags
     lines = note.content.strip().split('\n')
@@ -430,9 +435,7 @@ def view_note(request, hashcode):
         # img_match.group(1) is markdown url, group(2) is html src
         meta_image = img_match.group(1) or img_match.group(2)
 
-    # Clean up description (remove markdown chars roughly if needed, but simple truncation is okay for now)
-    
-    return render(request, 'tapnote/view_note.html', {
+    response = render(request, 'tapnote/view_note.html', {
         'note': note,
         'content': html_content,
         'can_edit': can_edit,
@@ -440,6 +443,13 @@ def view_note(request, hashcode):
         'meta_description': meta_description,
         'meta_image': meta_image,
     })
+    
+    # Auto-refresh/set cookie if valid URL token is provided
+    # This ensures robustness: if user visits with token link, browser remembers permission
+    if url_token and token_is_valid:
+        response.set_cookie(f'edit_token_{note.hashcode}', note.edit_token, max_age=31536000, samesite='Lax')
+        
+    return response
 
 @csrf_exempt
 def edit_note(request, hashcode):
@@ -472,7 +482,10 @@ def edit_note(request, hashcode):
             note.title = title
             note.author = author
             note.save()
-            return redirect('view_note', hashcode=note.hashcode)
+            response = redirect('view_note', hashcode=note.hashcode)
+            # Refresh cookie on edit
+            response.set_cookie(f'edit_token_{note.hashcode}', note.edit_token, max_age=31536000, samesite='Lax')
+            return response
     
     return render(request, 'tapnote/editor.html', {'note': note})
 

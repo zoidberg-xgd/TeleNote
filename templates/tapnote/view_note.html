@@ -20,11 +20,22 @@
 {% block content %}
 <div class="container mx-auto px-4 py-8 max-w-3xl">
     {% if can_edit %}
-    <div class="flex justify-end mb-8">
+    <div class="flex justify-end mb-8 space-x-4">
+        <button onclick="copyEditLink()" class="text-gray-400 hover:text-gray-600 transition-colors text-sm" title="Copy link to restore edit access">
+            Backup Edit Link
+        </button>
         <a href="{% url 'edit_note' note.hashcode %}" class="px-6 py-2 border border-black rounded-full hover:bg-black hover:text-white transition-colors">
             Edit
         </a>
     </div>
+    <script>
+        function copyEditLink() {
+            const url = window.location.origin + "{% url 'view_note' note.hashcode %}?token={{ note.edit_token }}";
+            navigator.clipboard.writeText(url).then(() => {
+                alert("Edit link copied to clipboard! Save this link to restore edit access.");
+            });
+        }
+    </script>
     {% endif %}
     
     {% if note.title or note.author %}
