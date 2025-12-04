@@ -212,6 +212,7 @@
     closeBtn.onclick = function () {
       container.style.display = "none";
       overlay.style.display = "none";
+      if (isMobile) document.body.style.overflow = "";
 
       if (currentParaIndex !== null && paras[currentParaIndex]) {
           paras[currentParaIndex].style.textDecoration = "none";
