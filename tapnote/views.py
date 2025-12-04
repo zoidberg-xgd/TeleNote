@@ -301,7 +301,7 @@ def apply_strikethrough(md_text):
     pattern = re.compile(r'~~(.*?)~~', re.DOTALL)
     return pattern.sub(r'<del>\1</del>', md_text)
 
-def process_markdown_links(html_content, target="_blank"):
+def process_markdown_links(html_content, target="_self"):
     # Keep existing link processing
     pattern = r'<a(.*?)href="(.*?)"(.*?)>'
     replacement = f'<a\\1href="\\2"\\3 target="{target}" rel="noopener noreferrer">'
@@ -357,7 +357,7 @@ def publish(request):
         content = request.POST.get('content', '').strip()
         title = request.POST.get('title', '').strip()
         author = request.POST.get('author', '').strip()
-        link_target = request.POST.get('link_target', '_blank')
+        link_target = request.POST.get('link_target', '_self')
         
         if len(content) > MAX_CONTENT_LENGTH:
             return render(request, 'tapnote/editor.html', {
@@ -471,7 +471,7 @@ def edit_note(request, hashcode):
         content = request.POST.get('content', '').strip()
         title = request.POST.get('title', '').strip()
         author = request.POST.get('author', '').strip()
-        link_target = request.POST.get('link_target', '_blank')
+        link_target = request.POST.get('link_target', '_self')
         
         if len(content) > MAX_CONTENT_LENGTH:
             return render(request, 'tapnote/editor.html', {
