@@ -422,6 +422,14 @@ def view_note(request, hashcode):
     if note.author:
         meta_description = f"By {note.author}. {meta_description}"
 
+    # Try to find an image for social preview
+    meta_image = None
+    # Match markdown image ![alt](url) or HTML <img src="url">
+    img_match = re.search(r'!\[.*?\]\((.*?)\)|<img.*?src=["\'](.*?)["\']', full_text)
+    if img_match:
+        # img_match.group(1) is markdown url, group(2) is html src
+        meta_image = img_match.group(1) or img_match.group(2)
+
     # Clean up description (remove markdown chars roughly if needed, but simple truncation is okay for now)
     
     return render(request, 'tapnote/view_note.html', {
@@ -430,6 +438,7 @@ def view_note(request, hashcode):
         'can_edit': can_edit,
         'meta_title': meta_title,
         'meta_description': meta_description,
+        'meta_image': meta_image,
     })
 
 @csrf_exempt
