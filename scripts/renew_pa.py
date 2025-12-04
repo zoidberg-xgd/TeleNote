@@ -1,7 +1,59 @@
-import requests
+"""PythonAnywhere Webapp Renewal Script
+
+This script uses Selenium to automate clicking the "Run until 3 months from today" button
+on PythonAnywhere's webapp configuration page.
+
+PythonAnywhere does NOT provide an API for extending webapp expiry, so browser automation
+is required.
+
+Requirements:
+    pip install selenium webdriver-manager
+
+Environment Variables:
+    PA_USERNAME: Your PythonAnywhere username
+    PA_PASSWORD: Your PythonAnywhere password
+    PA_DOMAIN: (Optional) Your webapp domain, defaults to {username}.pythonanywhere.com
+"""
 import os
 import sys
-import re
+import time
+
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from selenium.common.exceptions import TimeoutException, NoSuchElementException
+
+try:
+    from webdriver_manager.chrome import ChromeDriverManager
+    USE_WEBDRIVER_MANAGER = True
+except ImportError:
+    USE_WEBDRIVER_MANAGER = False
+
+
+def create_driver():
+    """Create a headless Chrome WebDriver."""
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--window-size=1920,1080")
+    chrome_options.add_argument(
+        "user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
+    
+    if USE_WEBDRIVER_MANAGER:
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+    else:
+        driver = webdriver.Chrome(options=chrome_options)
+    
+    return driver
+
 
 def renew_pythonanywhere():
     username = os.environ.get('PA_USERNAME')
@@ -13,145 +65,150 @@ def renew_pythonanywhere():
 
     domain = os.environ.get('PA_DOMAIN', f'{username}.pythonanywhere.com')
     login_url = 'https://www.pythonanywhere.com/login/'
-    dashboard_url = f'https://www.pythonanywhere.com/user/{username}/webapps/'
+    # Convert domain to tab ID format: dots and hyphens become underscores, lowercase
+    tab_id = domain.replace('.', '_').replace('-', '_').lower()
+    webapp_url = f'https://www.pythonanywhere.com/user/{username}/webapps/#tab_id_{tab_id}'
 
     print(f"🚀 Starting renewal process for user: '{username}'")
-    print(f"🎯 Target domain hint: '{domain}'")
+    print(f"🎯 Target webapp: '{domain}'")
+    print(f"📍 Webapp URL: {webapp_url}")
 
-    session = requests.Session()
-
-    # 1. Get login page to fetch CSRF token
-    print(f"1️⃣  Fetching login page: {login_url}")
+    driver = None
     try:
-        login_page = session.get(login_url)
-        login_page.raise_for_status()
-    except requests.RequestException as e:
-        print(f"❌ Failed to load login page: {e}")
-        sys.exit(1)
-
-    if 'csrftoken' not in session.cookies:
-        print("❌ CSRF token not found in cookies.")
-        sys.exit(1)
-    
-    csrf_token = session.cookies['csrftoken']
-    print(f"   🔑 Got CSRF token: {csrf_token[:10]}...")
-
-    # 2. Perform Login
-    print("2️⃣  Logging in...")
-    login_data = {
-        'auth-username': username,
-        'auth-password': password,
-        'csrfmiddlewaretoken': csrf_token,
-        'login_view-current_step': 'auth'
-    }
-    
-    headers = {
-        'Referer': login_url,
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
-    }
-
-    try:
-        response = session.post(login_url, data=login_data, headers=headers)
-        response.raise_for_status()
-    except requests.RequestException as e:
-        print(f"❌ Login request failed: {e}")
-        sys.exit(1)
-
-    # Verify login success
-    if 'Log out' not in response.text and 'Dashboard' not in response.text:
-        print("❌ Login failed. Please check your credentials.")
-        print("   📄 Login response preview:")
-        print(response.text[:500])
-        sys.exit(1)
-    
-    print("✅ Login successful.")
-
-    # 3. Get Dashboard to find the Extend URL
-    print(f"3️⃣  Fetching dashboard: {dashboard_url}")
-    try:
-        dashboard_page = session.get(dashboard_url, headers=headers)
-        dashboard_page.raise_for_status()
-    except requests.RequestException as e:
-        print(f"❌ Failed to load dashboard: {e}")
-        sys.exit(1)
-
-    # Find the extend action URL
-    print("   🔍 Searching for extension URL in dashboard HTML...")
-    
-    # Search for ANY extend URL first to see what we find
-    # Looking for form action like: /user/username/webapps/domain.com/extend
-    matches = re.findall(r'action="([^"]+/extend)"', dashboard_page.text)
-    
-    if not matches:
-        print(f"❌ Could not find any extension URL on dashboard.")
-        print("   📄 Dashboard HTML preview (first 2000 chars):")
-        print(dashboard_page.text[:2000])
-        print("   💾 Dumping full dashboard to 'dashboard_dump.html'...")
-        with open("dashboard_dump.html", "w", encoding="utf-8") as f:
-            f.write(dashboard_page.text)
-        sys.exit(1)
-
-    print(f"   👀 Found candidate extension URLs: {matches}")
-    
-    # Select the best match based on domain
-    relative_extend_url = None
-    for url in matches:
-        if domain in url:
-            relative_extend_url = url
-            break
-    
-    # Fallback: if only one exists, use it (useful if PA_DOMAIN isn't exact)
-    if not relative_extend_url and len(matches) == 1:
-        print("   ⚠️  Domain not found in URL, but only one app exists. Using it.")
-        relative_extend_url = matches[0]
-    
-    if not relative_extend_url:
-        print(f"❌ Could not match domain '{domain}' to any found extension URL.")
-        print(f"   Available options were: {matches}")
-        sys.exit(1)
-
-    final_extend_url = f"https://www.pythonanywhere.com{relative_extend_url}"
-    print(f"   ✅ Selected extension URL: {final_extend_url}")
-
-    # 4. Extend the Web App
-    print("4️⃣  Extending web app...")
-    
-    # Update CSRF token
-    if 'csrftoken' in session.cookies:
-        csrf_token = session.cookies['csrftoken']
-
-    extend_data = {
-        'csrfmiddlewaretoken': csrf_token
-    }
-    
-    headers['Referer'] = dashboard_url
-
-    try:
-        print(f"   📤 Sending POST request to {final_extend_url}")
-        response = session.post(final_extend_url, data=extend_data, headers=headers)
-        print(f"   📥 Status Code: {response.status_code}")
+        print("1️⃣  Initializing headless Chrome browser...")
+        driver = create_driver()
+        wait = WebDriverWait(driver, 20)
         
-        try:
-            result_json = response.json()
-            if result_json.get('status') == 'OK':
+        # 1. Navigate to login page
+        print(f"2️⃣  Navigating to login page: {login_url}")
+        driver.get(login_url)
+        time.sleep(2)
+        
+        # 2. Fill in login form
+        print("3️⃣  Filling in login credentials...")
+        username_field = wait.until(
+            EC.presence_of_element_located((By.ID, "id_auth-username"))
+        )
+        username_field.clear()
+        username_field.send_keys(username)
+        
+        password_field = driver.find_element(By.ID, "id_auth-password")
+        password_field.clear()
+        password_field.send_keys(password)
+        
+        # 3. Submit login form
+        print("4️⃣  Submitting login form...")
+        login_button = driver.find_element(By.ID, "id_next")
+        login_button.click()
+        
+        # Wait for login to complete
+        time.sleep(3)
+        
+        # Check if login was successful
+        if "login" in driver.current_url.lower():
+            print("❌ Login failed. Please check your credentials.")
+            print(f"   Current URL: {driver.current_url}")
+            sys.exit(1)
+        
+        print("✅ Login successful!")
+        
+        # 4. Navigate to webapp configuration page
+        print(f"5️⃣  Navigating to webapp page: {webapp_url}")
+        driver.get(webapp_url)
+        time.sleep(3)
+        
+        # 5. Find and click the "Run until 3 months from today" button
+        print("6️⃣  Looking for 'Run until 3 months from today' button...")
+        
+        # Try multiple selectors to find the button
+        button = None
+        selectors = [
+            # Button with specific text
+            "//button[contains(text(), 'Run until 3 months')]",
+            "//input[@type='submit' and contains(@value, 'Run until 3 months')]",
+            # Form with extend action
+            "//form[contains(@action, '/extend')]//button",
+            "//form[contains(@action, '/extend')]//input[@type='submit']",
+            # Class-based selectors
+            "//button[contains(@class, 'extend')]",
+            ".//button[contains(@class, 'btn') and contains(text(), 'Run')]",
+        ]
+        
+        for selector in selectors:
+            try:
+                button = driver.find_element(By.XPATH, selector)
+                if button and button.is_displayed():
+                    print(f"   ✅ Found button with selector: {selector}")
+                    break
+            except NoSuchElementException:
+                continue
+        
+        if not button:
+            # Try CSS selector as fallback
+            try:
+                button = driver.find_element(
+                    By.CSS_SELECTOR, 
+                    "form[action*='extend'] button, form[action*='extend'] input[type='submit']"
+                )
+            except NoSuchElementException:
+                pass
+        
+        if not button:
+            print("❌ Could not find the extend button.")
+            print("   📄 Page source preview:")
+            print(driver.page_source[:2000])
+            # Save screenshot for debugging
+            driver.save_screenshot("debug_screenshot.png")
+            print("   📸 Saved screenshot to debug_screenshot.png")
+            sys.exit(1)
+        
+        # 6. Click the button
+        print("7️⃣  Clicking the extend button...")
+        driver.execute_script("arguments[0].scrollIntoView(true);", button)
+        time.sleep(1)
+        button.click()
+        
+        # Wait for the action to complete
+        time.sleep(3)
+        
+        # 7. Verify success
+        print("8️⃣  Verifying extension...")
+        driver.refresh()
+        time.sleep(2)
+        
+        # Check for new expiry date in page
+        page_text = driver.page_source
+        if "will be disabled on" in page_text:
+            # Extract the new date
+            import re
+            date_match = re.search(r'will be disabled on\s+<strong>([^<]+)</strong>', page_text)
+            if date_match:
+                new_date = date_match.group(1)
                 print(f"✅ Successfully extended!")
-                print(f"   🎉 New expiry: {result_json.get('expires')}")
+                print(f"   🎉 New expiry date: {new_date}")
             else:
-                print(f"⚠️  Extension request returned unexpected status: {result_json}")
-                print("   📄 Full JSON response:", result_json)
-        except ValueError:
-            # PythonAnywhere returns 200 OK with HTML on success, not JSON
-            if response.status_code == 200:
-                print(f"✅ Successfully extended! (HTTP 200)")
-                print(f"   The 'Run until 3 months from today' button was triggered successfully.")
-            else:
-                print(f"❌ Failed. Response was not JSON and Status Code is {response.status_code}.")
-                print(f"   Response content preview: {response.text[:1000]}")
-                sys.exit(1)
-
-    except Exception as e:
-        print(f"❌ Failed to extend web app: {e}")
+                print("✅ Extension request completed!")
+        else:
+            print("✅ Extension request completed!")
+            print("   ⚠️  Could not verify new expiry date from page.")
+        
+    except TimeoutException as e:
+        print(f"❌ Timeout waiting for page element: {e}")
+        if driver:
+            driver.save_screenshot("timeout_screenshot.png")
+            print("   📸 Saved screenshot to timeout_screenshot.png")
         sys.exit(1)
+    except Exception as e:
+        print(f"❌ Error during renewal: {e}")
+        if driver:
+            driver.save_screenshot("error_screenshot.png")
+            print("   📸 Saved screenshot to error_screenshot.png")
+        sys.exit(1)
+    finally:
+        if driver:
+            driver.quit()
+            print("🔒 Browser closed.")
+
 
 if __name__ == "__main__":
     renew_pythonanywhere()

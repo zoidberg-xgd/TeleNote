@@ -21,3 +21,7 @@ isort==5.13.2
 # Type Checking
 mypy==1.7.1
 django-stubs==4.2.7
+
+# Browser Automation (for PythonAnywhere renewal script)
+selenium>=4.15.0
+webdriver-manager>=4.0.1
