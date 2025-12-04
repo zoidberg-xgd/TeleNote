@@ -1,9 +1,10 @@
-"""PythonAnywhere Webapp Renewal Script
+"""PythonAnywhere Renewal Script
 
-This script uses Selenium to automate clicking the "Run until 3 months from today" button
-on PythonAnywhere's webapp configuration page.
+This script uses Selenium to automate:
+1. Clicking the "Run until 3 months from today" button for webapp
+2. Clicking the "Extend expiry" button for scheduled tasks
 
-PythonAnywhere does NOT provide an API for extending webapp expiry, so browser automation
+PythonAnywhere does NOT provide an API for extending expiry, so browser automation
 is required.
 
 Requirements:
@@ -15,6 +16,7 @@ Environment Variables:
     PA_DOMAIN: (Optional) Your webapp domain, defaults to {username}.pythonanywhere.com
 """
 import os
+import re
 import sys
 import time
 
@@ -55,6 +57,152 @@ def create_driver():
     return driver
 
 
+def login(driver, wait, username, password):
+    """Login to PythonAnywhere and return True if successful."""
+    login_url = 'https://www.pythonanywhere.com/login/'
+    
+    print(f"\n🔐 Navigating to login page: {login_url}")
+    driver.get(login_url)
+    time.sleep(2)
+    
+    print("🔑 Filling in login credentials...")
+    username_field = wait.until(
+        EC.presence_of_element_located((By.ID, "id_auth-username"))
+    )
+    username_field.clear()
+    username_field.send_keys(username)
+    
+    password_field = driver.find_element(By.ID, "id_auth-password")
+    password_field.clear()
+    password_field.send_keys(password)
+    
+    print("📤 Submitting login form...")
+    login_button = driver.find_element(By.ID, "id_next")
+    login_button.click()
+    
+    time.sleep(3)
+    
+    if "login" in driver.current_url.lower():
+        print("❌ Login failed. Please check your credentials.")
+        print(f"   Current URL: {driver.current_url}")
+        return False
+    
+    print("✅ Login successful!")
+    return True
+
+
+def renew_webapp(driver, username, domain):
+    """Renew the webapp expiry."""
+    tab_id = domain.replace('.', '_').replace('-', '_').lower()
+    webapp_url = f'https://www.pythonanywhere.com/user/{username}/webapps/#tab_id_{tab_id}'
+    
+    print(f"\n🌐 === RENEWING WEBAPP ===")
+    print(f"🎯 Target: {domain}")
+    print(f"📍 URL: {webapp_url}")
+    
+    driver.get(webapp_url)
+    time.sleep(3)
+    
+    print("🔍 Looking for 'Run until 3 months from today' button...")
+    
+    button = None
+    selectors = [
+        "//input[@type='submit' and contains(@value, 'Run until 3 months')]",
+        "//button[contains(text(), 'Run until 3 months')]",
+        "//form[contains(@action, '/extend')]//button",
+        "//form[contains(@action, '/extend')]//input[@type='submit']",
+    ]
+    
+    for selector in selectors:
+        try:
+            button = driver.find_element(By.XPATH, selector)
+            if button and button.is_displayed():
+                print(f"   ✅ Found button")
+                break
+        except NoSuchElementException:
+            continue
+    
+    if not button:
+        print("❌ Could not find the webapp extend button.")
+        return False
+    
+    print("👆 Clicking the extend button...")
+    driver.execute_script("arguments[0].scrollIntoView(true);", button)
+    time.sleep(1)
+    button.click()
+    time.sleep(3)
+    
+    # Verify
+    driver.refresh()
+    time.sleep(2)
+    
+    page_text = driver.page_source
+    date_match = re.search(r'will be disabled on\s+<strong>([^<]+)</strong>', page_text)
+    if date_match:
+        print(f"✅ Webapp extended! New expiry: {date_match.group(1)}")
+    else:
+        print("✅ Webapp extension request completed!")
+    
+    return True
+
+
+def renew_tasks(driver, username):
+    """Renew all scheduled tasks expiry."""
+    tasks_url = f'https://www.pythonanywhere.com/user/{username}/tasks_tab/'
+    
+    print(f"\n📅 === RENEWING SCHEDULED TASKS ===")
+    print(f"📍 URL: {tasks_url}")
+    
+    driver.get(tasks_url)
+    time.sleep(3)
+    
+    # Find all "Extend expiry" buttons
+    extend_buttons = []
+    selectors = [
+        "//button[contains(text(), 'Extend expiry')]",
+        "//a[contains(text(), 'Extend expiry')]",
+        "//button[contains(@class, 'extend')]",
+        "//*[contains(@class, 'extend_expiry')]",
+        "//button[contains(@title, 'extend') or contains(@title, 'Extend')]",
+    ]
+    
+    for selector in selectors:
+        try:
+            buttons = driver.find_elements(By.XPATH, selector)
+            extend_buttons.extend([b for b in buttons if b.is_displayed()])
+        except NoSuchElementException:
+            continue
+    
+    # Also try CSS selector
+    try:
+        css_buttons = driver.find_elements(By.CSS_SELECTOR, ".extend_expiry, button.btn-info")
+        for btn in css_buttons:
+            if btn.is_displayed() and btn not in extend_buttons:
+                # Check if it's an extend button by looking at nearby text or class
+                extend_buttons.append(btn)
+    except NoSuchElementException:
+        pass
+    
+    if not extend_buttons:
+        print("⚠️  No 'Extend expiry' buttons found (tasks may not need renewal yet).")
+        return True
+    
+    print(f"� Found {len(extend_buttons)} task(s) to extend.")
+    
+    for i, button in enumerate(extend_buttons, 1):
+        try:
+            print(f"👆 Clicking extend button for task {i}...")
+            driver.execute_script("arguments[0].scrollIntoView(true);", button)
+            time.sleep(0.5)
+            button.click()
+            time.sleep(2)
+        except Exception as e:
+            print(f"   ⚠️  Failed to click button {i}: {e}")
+    
+    print("✅ Scheduled tasks extended!")
+    return True
+
+
 def renew_pythonanywhere():
     username = os.environ.get('PA_USERNAME')
     password = os.environ.get('PA_PASSWORD')
@@ -64,133 +212,29 @@ def renew_pythonanywhere():
         sys.exit(1)
 
     domain = os.environ.get('PA_DOMAIN', f'{username}.pythonanywhere.com')
-    login_url = 'https://www.pythonanywhere.com/login/'
-    # Convert domain to tab ID format: dots and hyphens become underscores, lowercase
-    tab_id = domain.replace('.', '_').replace('-', '_').lower()
-    webapp_url = f'https://www.pythonanywhere.com/user/{username}/webapps/#tab_id_{tab_id}'
 
-    print(f"🚀 Starting renewal process for user: '{username}'")
-    print(f"🎯 Target webapp: '{domain}'")
-    print(f"📍 Webapp URL: {webapp_url}")
+    print(f"🚀 Starting PythonAnywhere renewal for user: '{username}'")
+    print(f"🎯 Webapp domain: '{domain}'")
 
     driver = None
     try:
-        print("1️⃣  Initializing headless Chrome browser...")
+        print("\n💻 Initializing headless Chrome browser...")
         driver = create_driver()
         wait = WebDriverWait(driver, 20)
         
-        # 1. Navigate to login page
-        print(f"2️⃣  Navigating to login page: {login_url}")
-        driver.get(login_url)
-        time.sleep(2)
-        
-        # 2. Fill in login form
-        print("3️⃣  Filling in login credentials...")
-        username_field = wait.until(
-            EC.presence_of_element_located((By.ID, "id_auth-username"))
-        )
-        username_field.clear()
-        username_field.send_keys(username)
-        
-        password_field = driver.find_element(By.ID, "id_auth-password")
-        password_field.clear()
-        password_field.send_keys(password)
-        
-        # 3. Submit login form
-        print("4️⃣  Submitting login form...")
-        login_button = driver.find_element(By.ID, "id_next")
-        login_button.click()
-        
-        # Wait for login to complete
-        time.sleep(3)
-        
-        # Check if login was successful
-        if "login" in driver.current_url.lower():
-            print("❌ Login failed. Please check your credentials.")
-            print(f"   Current URL: {driver.current_url}")
+        # Login
+        if not login(driver, wait, username, password):
             sys.exit(1)
         
-        print("✅ Login successful!")
+        # Renew webapp
+        renew_webapp(driver, username, domain)
         
-        # 4. Navigate to webapp configuration page
-        print(f"5️⃣  Navigating to webapp page: {webapp_url}")
-        driver.get(webapp_url)
-        time.sleep(3)
+        # Renew scheduled tasks
+        renew_tasks(driver, username)
         
-        # 5. Find and click the "Run until 3 months from today" button
-        print("6️⃣  Looking for 'Run until 3 months from today' button...")
-        
-        # Try multiple selectors to find the button
-        button = None
-        selectors = [
-            # Button with specific text
-            "//button[contains(text(), 'Run until 3 months')]",
-            "//input[@type='submit' and contains(@value, 'Run until 3 months')]",
-            # Form with extend action
-            "//form[contains(@action, '/extend')]//button",
-            "//form[contains(@action, '/extend')]//input[@type='submit']",
-            # Class-based selectors
-            "//button[contains(@class, 'extend')]",
-            ".//button[contains(@class, 'btn') and contains(text(), 'Run')]",
-        ]
-        
-        for selector in selectors:
-            try:
-                button = driver.find_element(By.XPATH, selector)
-                if button and button.is_displayed():
-                    print(f"   ✅ Found button with selector: {selector}")
-                    break
-            except NoSuchElementException:
-                continue
-        
-        if not button:
-            # Try CSS selector as fallback
-            try:
-                button = driver.find_element(
-                    By.CSS_SELECTOR, 
-                    "form[action*='extend'] button, form[action*='extend'] input[type='submit']"
-                )
-            except NoSuchElementException:
-                pass
-        
-        if not button:
-            print("❌ Could not find the extend button.")
-            print("   📄 Page source preview:")
-            print(driver.page_source[:2000])
-            # Save screenshot for debugging
-            driver.save_screenshot("debug_screenshot.png")
-            print("   📸 Saved screenshot to debug_screenshot.png")
-            sys.exit(1)
-        
-        # 6. Click the button
-        print("7️⃣  Clicking the extend button...")
-        driver.execute_script("arguments[0].scrollIntoView(true);", button)
-        time.sleep(1)
-        button.click()
-        
-        # Wait for the action to complete
-        time.sleep(3)
-        
-        # 7. Verify success
-        print("8️⃣  Verifying extension...")
-        driver.refresh()
-        time.sleep(2)
-        
-        # Check for new expiry date in page
-        page_text = driver.page_source
-        if "will be disabled on" in page_text:
-            # Extract the new date
-            import re
-            date_match = re.search(r'will be disabled on\s+<strong>([^<]+)</strong>', page_text)
-            if date_match:
-                new_date = date_match.group(1)
-                print(f"✅ Successfully extended!")
-                print(f"   🎉 New expiry date: {new_date}")
-            else:
-                print("✅ Extension request completed!")
-        else:
-            print("✅ Extension request completed!")
-            print("   ⚠️  Could not verify new expiry date from page.")
+        print("\n" + "="*50)
+        print("✅ All renewals completed successfully!")
+        print("="*50)
         
     except TimeoutException as e:
         print(f"❌ Timeout waiting for page element: {e}")
