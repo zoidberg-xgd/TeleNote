@@ -371,8 +371,8 @@ def publish(request):
     return redirect('home')
 
 def view_note(request, hashcode):
-    # Validate hashcode format
-    if not re.match(r'^[a-f0-9]{32}$', hashcode):
+    # Validate hashcode format (allow 8-32 chars, alphanumeric)
+    if not re.match(r'^[a-zA-Z0-9]{8,32}$', hashcode):
         raise Http404()
     
     note = get_object_or_404(Note, hashcode=hashcode)
@@ -434,8 +434,8 @@ def view_note(request, hashcode):
 
 @csrf_exempt
 def edit_note(request, hashcode):
-    # Validate hashcode format
-    if not re.match(r'^[a-f0-9]{32}$', hashcode):
+    # Validate hashcode format (allow 8-32 chars, alphanumeric)
+    if not re.match(r'^[a-zA-Z0-9]{8,32}$', hashcode):
         raise Http404()
     
     note = get_object_or_404(Note, hashcode=hashcode)
@@ -528,8 +528,5 @@ def import_data(request):
             return render(request, 'tapnote/migration.html', {'success': f'Successfully imported {count} notes.'})
         except Exception as e:
             return render(request, 'tapnote/migration.html', {'error': f'Error importing file: {str(e)}'})
-            
-    return redirect('migration')
-pnote/migration.html', {'error': f'Error importing file: {str(e)}'})
             
     return redirect('migration')

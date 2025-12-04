@@ -25,7 +25,9 @@ TapNote is a minimalist, self-hosted publishing platform inspired by Telegra.ph,
   - Self-hosted: maintain full control over your content
 
 - **Content Management**
-  - Unique URL for each post
+  - Unique URL for each post (**Optimized 8-char short links**)
+  - Support for **Title** and **Author** fields
+  - Automatic **Social Media Previews** (Open Graph)
   - Edit functionality with secure tokens
   - Proper rendering of all Markdown elements
   - Support for images and code snippets

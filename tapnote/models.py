@@ -1,4 +1,6 @@
 import uuid
+import string
+import secrets
 from django.db import models
 from django.utils import timezone
 
@@ -16,7 +18,16 @@ class Note(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.hashcode:
-            self.hashcode = uuid.uuid4().hex
+            # Try to generate a unique 8-char short ID
+            for _ in range(10):
+                code = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(8))
+                if not Note.objects.filter(hashcode=code).exists():
+                    self.hashcode = code
+                    break
+            else:
+                # Fallback to uuid hex if 10 tries fail (extremely unlikely)
+                self.hashcode = uuid.uuid4().hex
+                
         if not self.edit_token:
             self.edit_token = uuid.uuid4().hex
         super().save(*args, **kwargs)
