@@ -57,4 +57,14 @@ class LikeRecord(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        unique_together = [['comment', 'user_id'], ['comment', 'ip']] 
+        unique_together = [['comment', 'user_id'], ['comment', 'ip']]
+
+class BannedUser(models.Model):
+    site_id = models.CharField(max_length=100)
+    user_id = models.CharField(max_length=100)
+    reason = models.TextField(blank=True, null=True)
+    banned_by = models.CharField(max_length=100, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = [['site_id', 'user_id']]

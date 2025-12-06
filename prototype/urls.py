@@ -32,6 +32,7 @@ urlpatterns = [
     path('migration/import/', views.import_data, name='import_data'),
     path('api/v1/comments', views.api_comments, name='api_comments'),
     path('api/v1/comments/like', views.api_like_comment, name='api_like_comment'),
+    path('api/v1/ban', views.api_ban, name='api_ban'),
     path('<str:hashcode>/', views.view_note, name='view_note'),
     path('<str:hashcode>/edit/', views.edit_note, name='edit_note'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

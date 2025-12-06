@@ -371,3 +371,88 @@ https://youtu.be/test123
         self.assertIn('<code', html)
         self.assertIn('target="_self"', html)  # Default link target is _self
         self.assertIn('youtube.com/embed/test123', html)
+
+
+class BanTests(TestCase):
+    """Test cases for ban functionality"""
+
+    def setUp(self):
+        from django.contrib.auth.models import User
+        self.admin = User.objects.create_superuser(username='admin', password='password', email='admin@example.com')
+        self.user = User.objects.create_user(username='user', password='password')
+        self.client = Client()
+
+    def test_admin_can_ban_user(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(
+            reverse('api_ban'),
+            {'siteId': 'test_site', 'targetUserId': 'bad_user', 'reason': 'spam'},
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()['success'])
+        
+        # Verify ban exists
+        response = self.client.get(reverse('api_ban'), {'siteId': 'test_site'})
+        data = response.json()
+        self.assertEqual(len(data['bannedUsers']), 1)
+        self.assertEqual(data['bannedUsers'][0]['userId'], 'bad_user')
+
+    def test_admin_can_unban_user(self):
+        self.client.force_login(self.admin)
+        # First ban
+        self.client.post(
+            reverse('api_ban'),
+            {'siteId': 'test_site', 'targetUserId': 'bad_user'},
+            content_type='application/json'
+        )
+        
+        # Then unban
+        response = self.client.delete(
+            reverse('api_ban'),
+            {'siteId': 'test_site', 'targetUserId': 'bad_user'},
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 200)
+        
+        # Verify ban is gone
+        response = self.client.get(reverse('api_ban'), {'siteId': 'test_site'})
+        data = response.json()
+        self.assertEqual(len(data['bannedUsers']), 0)
+
+    def test_non_admin_cannot_ban(self):
+        self.client.force_login(self.user)
+        response = self.client.post(
+            reverse('api_ban'),
+            {'siteId': 'test_site', 'targetUserId': 'bad_user'},
+            content_type='application/json'
+        )
+        self.assertEqual(response.status_code, 403)
+
+    def test_banned_user_cannot_comment(self):
+        # Ban a specific IP user ID
+        site_id = 'test_site'
+        import hashlib
+        # Simulate IP hash generation
+        ip = '127.0.0.1' 
+        ip_hash = hashlib.md5((ip + site_id).encode()).hexdigest()
+        user_id = f"ip_{ip_hash}"
+        
+        from .models import BannedUser
+        BannedUser.objects.create(site_id=site_id, user_id=user_id)
+        
+        # Try to comment
+        response = self.client.post(
+            reverse('api_comments'),
+            {
+                'siteId': site_id,
+                'workId': 'work1',
+                'chapterId': 'ch1',
+                'paraIndex': 0,
+                'content': 'Spam content'
+            },
+            content_type='application/json'
+        )
+        
+        self.assertEqual(response.status_code, 403)
+        self.assertEqual(response.json()['error'], 'user_banned')

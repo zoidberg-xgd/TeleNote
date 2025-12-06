@@ -8,7 +8,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.dateparse import parse_datetime
 from django.contrib.auth.models import User
 from django.contrib.auth import login
-from .models import Note, Comment, LikeRecord
+from .models import Note, Comment, LikeRecord, BannedUser
 import re
 
 MAX_CONTENT_LENGTH = 200000
@@ -153,6 +153,10 @@ def api_comments(request):
                 user_id = f"ip_{ip_hash}"
                 user_name = f"{GUEST_NAME_PREFIX}{ip_hash[:6]}"
             
+            # Check if user is banned
+            if user_id and BannedUser.objects.filter(site_id=site_id, user_id=user_id).exists():
+                return JsonResponse({'error': 'user_banned', 'message': 'You are banned from commenting.'}, status=403)
+            
             comment = Comment.objects.create(
                 site_id=site_id,
                 work_id=work_id,
@@ -294,6 +298,73 @@ def api_like_comment(request):
         except Exception as e:
             # Don't expose internal error details
             return JsonResponse({'error': 'internal_error'}, status=500)
+    return JsonResponse({'error': 'method_not_allowed'}, status=405)
+
+@csrf_exempt
+def api_ban(request):
+    # Only staff (admins) can manage bans for now
+    if not request.user.is_staff:
+        return JsonResponse({'error': 'permission_denied', 'message': 'Admins only'}, status=403)
+
+    if request.method == 'GET':
+        site_id = request.GET.get('siteId')
+        if not site_id:
+             return JsonResponse({'error': 'missing_params'}, status=400)
+        
+        bans = BannedUser.objects.filter(site_id=site_id)
+        data = []
+        for ban in bans:
+            data.append({
+                'userId': ban.user_id,
+                'reason': ban.reason,
+                'bannedBy': ban.banned_by,
+                'bannedAt': ban.created_at.isoformat()
+            })
+        return JsonResponse({'bannedUsers': data})
+
+    elif request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            site_id = data.get('siteId')
+            target_user_id = data.get('targetUserId')
+            reason = data.get('reason', '')
+            
+            if not site_id or not target_user_id:
+                return JsonResponse({'error': 'missing_fields'}, status=400)
+            
+            BannedUser.objects.get_or_create(
+                site_id=site_id,
+                user_id=target_user_id,
+                defaults={
+                    'reason': reason,
+                    'banned_by': request.user.username
+                }
+            )
+            return JsonResponse({'success': True})
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'invalid_json'}, status=400)
+        except Exception as e:
+             return JsonResponse({'error': 'internal_error'}, status=500)
+
+    elif request.method == 'DELETE':
+        try:
+            data = json.loads(request.body)
+            site_id = data.get('siteId')
+            target_user_id = data.get('targetUserId')
+            
+            if not site_id or not target_user_id:
+                return JsonResponse({'error': 'missing_fields'}, status=400)
+                
+            deleted, _ = BannedUser.objects.filter(site_id=site_id, user_id=target_user_id).delete()
+            if deleted:
+                return JsonResponse({'success': True})
+            else:
+                return JsonResponse({'error': 'not_found'}, status=404)
+        except json.JSONDecodeError:
+            return JsonResponse({'error': 'invalid_json'}, status=400)
+        except Exception:
+             return JsonResponse({'error': 'internal_error'}, status=500)
+
     return JsonResponse({'error': 'method_not_allowed'}, status=405)
 
 def apply_strikethrough(md_text):
