@@ -15,7 +15,7 @@ class NoteModelTests(TestCase):
         self.assertIsNotNone(note.hashcode)
         self.assertIsNotNone(note.edit_token)
         self.assertEqual(note.content, "Test content")
-        self.assertEqual(len(note.hashcode), 32)
+        self.assertEqual(len(note.hashcode), 8)  # Short 8-char hashcode
         self.assertEqual(len(note.edit_token), 32)
 
     def test_note_hashcode_uniqueness(self):
@@ -87,10 +87,17 @@ class HelperFunctionsTests(TestCase):
         result = apply_strikethrough(text)
         self.assertEqual(result, text)
 
-    def test_process_markdown_links_target_blank(self):
-        """Test that links get target blank added"""
+    def test_process_markdown_links_target_self(self):
+        """Test that links get target _self by default"""
         html = '<a href="http://example.com">Link</a>'
         result = process_markdown_links(html)
+        self.assertIn('target="_self"', result)
+        self.assertIn('rel="noopener noreferrer"', result)
+
+    def test_process_markdown_links_target_blank(self):
+        """Test that links get target _blank when specified"""
+        html = '<a href="http://example.com">Link</a>'
+        result = process_markdown_links(html, target='_blank')
         self.assertIn('target="_blank"', result)
         self.assertIn('rel="noopener noreferrer"', result)
 
@@ -362,5 +369,5 @@ https://youtu.be/test123
         self.assertIn('<li>List item', html)
         self.assertIn('<del>Strikethrough</del>', html)
         self.assertIn('<code', html)
-        self.assertIn('target="_blank"', html)
+        self.assertIn('target="_self"', html)  # Default link target is _self
         self.assertIn('youtube.com/embed/test123', html)
