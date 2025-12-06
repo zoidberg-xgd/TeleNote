@@ -35,6 +35,13 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
+try:
+    from webdriver_manager.chrome import ChromeDriverManager
+    from selenium.webdriver.chrome.service import Service
+    HAS_WEBDRIVER_MANAGER = True
+except ImportError:
+    HAS_WEBDRIVER_MANAGER = False
+
 
 def load_config():
     """Load configuration from YAML file.
@@ -127,7 +134,17 @@ def create_driver():
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     )
     
-    # Use system chromedriver (installed by GitHub Actions)
+    # Try webdriver_manager first, fall back to system chromedriver
+    if HAS_WEBDRIVER_MANAGER:
+        try:
+            print("📦 Using webdriver-manager to get chromedriver...")
+            service = Service(ChromeDriverManager().install())
+            driver = webdriver.Chrome(service=service, options=chrome_options)
+            return driver
+        except Exception as e:
+            print(f"⚠️  webdriver-manager failed: {e}, trying system chromedriver...")
+    
+    # Fall back to system chromedriver
     driver = webdriver.Chrome(options=chrome_options)
     return driver
 
