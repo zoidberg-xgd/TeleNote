@@ -1,90 +1,81 @@
-# TapNote 功能特性
+# TeleNote Features Guide
 
-TapNote 是一个功能丰富的自托管发布平台，支持 Markdown 编辑、段落评论、数据迁移等功能。
+This document provides a detailed overview of the features and capabilities of TeleNote.
 
-## 🆕 核心功能
+## ✍️ Editor & Publishing
 
-### 1. 评论和点赞系统
-- **段落评论功能**：集成了 [ParaNote](https://github.com/zoidberg-xgd/paranote) 评论系统
-- **段落级评论**：支持在文章的任何段落添加评论
-- **点赞功能**：支持对评论进行点赞
-- **模糊定位**：即使文章内容更新，评论也能自动定位到正确段落
-- **管理员功能**：支持管理员删除评论
+### Markdown Support
+TeleNote uses a robust Markdown engine that supports:
+- **Headers** (H1-H4)
+- **Formatting**: Bold, Italic, Strikethrough, Code (inline and block)
+- **Lists**: Ordered and Unordered
+- **Quotes**: Blockquotes
+- **Images**: Drag & drop or URL based
+- **Links**: Standard markdown links
 
-### 2. 数据迁移功能
-- **导出功能**：可以将所有笔记导出为 JSON 格式
-- **导入功能**：支持从 JSON 文件恢复笔记
-- **数据备份**：方便进行数据备份和迁移
+### Metadata
+- **Title**: Mandatory field for every note.
+- **Author Name**: Optional. Defaults to "Anonymous" if not provided.
+- **Author URL**: Optional. Links the author name to a profile or website.
 
-### 3. PythonAnywhere 部署支持
-- **自动化部署脚本**：`deploy_pa.sh` 一键部署到 PythonAnywhere
-- **自动续期脚本**：`scripts/renew_pa.py` 自动延续免费 Web 应用有效期
-- **GitHub Actions 集成**：支持自动续期工作流
-- **详细部署文档**：`DEPLOY_PYTHONANYWHERE.md` 和 `UPDATE_PYTHONANYWHERE.md`
+### Limitations
+To ensure system stability and performance:
+- **Content Length**: Max 200,000 characters per note.
+- **Upload Size**: Max 2.5MB per request (for internal storage/processing).
 
-### 4. 测试和 CI/CD
-- **测试脚本**：`run_tests.sh` 支持测试和覆盖率报告
-- **GitHub Actions**：自动化测试工作流
-- **测试覆盖**：包含单元测试和集成测试
+## 📖 Reading Experience
 
-### 5. 工具脚本
-- **txt2tapnote**：将文本文件批量导入为 TapNote 笔记
-- **renew_pa**：PythonAnywhere 自动续期工具
+### Social Previews
+TeleNote automatically generates Open Graph (OG) tags for every page.
+- **Title**: From note title.
+- **Description**: First paragraph of the content.
+- **Image**: First image in the content (if any).
+- **Site Name**: TeleNote.
 
-### 6. 管理功能
-- **Django Admin**：支持在管理后台管理笔记和评论
-- **初始管理员设置**：首次运行时自动创建管理员账户
+### Short URLs
+URLs are generated using a custom base62 encoding (alphanumeric), resulting in short, 8-character identifiers (e.g., `AbCdEf12`). This is more user-friendly than standard UUIDs.
 
-### 7. 国际化支持
-- **中文 README**：提供完整的中文文档 `README_CN.md`
+## 💬 Comment System
 
-### 8. Telegra.ph 风格增强 (New)
-- **标题和作者支持**：
-  - 在发布时可显式指定**标题**和**作者**
-  - 优雅的元数据展示，完美复刻 Telegra.ph 体验
-- **社交媒体预览 (Open Graph)**：
-  - 自动生成 Open Graph 和 Twitter Card 标签
-  - 分享到 Telegram/Twitter/微信时显示精美的卡片预览
-- **短链接优化**：
-  - 使用 8 位字母数字短链接（如 `Xy7zK9wP`）替代长 UUID
-  - 链接更短，更易分享
+TeleNote integrates **ParaNote**, a paragraph-level commenting system.
 
-## 🔧 改进和优化
+- **Granularity**: Comments are attached to specific paragraphs.
+- **Positioning**: Comments follow their paragraph even if the article is edited (using fuzzy matching and context fingerprints).
+- **Likes**: Users can like individual comments.
+- **Moderation**: Admin interface allows banning users (by IP/ID) and deleting comments.
+- **Toggle**: Comments can be disabled globally via `ENABLE_COMMENTS=False` in `.env`.
 
-- **UI 优化**：修复了文字重叠和语言不一致问题
-- **代码质量**：添加了测试覆盖和代码规范
-- **文档完善**：补充了部署和使用文档
-- **错误处理**：改进了错误处理和用户体验
+## 🔌 API
 
-## 📊 功能对比
+TeleNote provides a **Telegraph-compatible API**.
+See [API.md](API.md) for full documentation.
 
-| 功能 | TapNote |
-|------|---------|
-| Markdown 编辑 | ✅ |
-| 即时发布 | ✅ |
-| 段落级评论 | ✅ |
-| 评论点赞 | ✅ |
-| 数据迁移 | ✅ |
-| PythonAnywhere 部署 | ✅ |
-| 测试框架 | ✅ |
-| CI/CD | ✅ |
-| 中文文档 | ✅ |
-| Django Admin | ✅ |
+Supported methods:
+- `createAccount`, `editAccountInfo`, `getAccountInfo`, `revokeAccessToken`
+- `createPage`, `editPage`, `getPage`, `getPageList`, `getViews`
 
-## 🚀 使用场景
+## 📦 Data Management
 
-TapNote 适合以下场景：
-- **个人博客**：快速发布 Markdown 文章
-- **团队协作**：通过评论系统进行讨论
-- **内容备份**：使用数据迁移功能备份内容
-- **自托管发布**：完全掌控自己的内容
+### Import / Export
+- **Export**: Admin can export all notes to a single JSON file.
+- **Import**: Restore notes from a JSON file. This is useful for backups or migrating between instances.
+- **Format**: JSON structure containing all Note, Comment, and Account models.
 
-## 📝 许可证
+## 🛠 Administration
 
-使用 [MIT License](LICENSE)。
+### Django Admin
+Built-in admin interface at `/admin/`.
+- Manage **Notes** (view, delete).
+- Manage **Comments** (view, delete).
+- Manage **Banned Users**.
+- Manage **Telegraph Accounts**.
 
-## 🙏 致谢
+### Automated Deployment
+- **PythonAnywhere**: Scripts included for one-click deployment (`deploy_pa.sh`) and auto-renewal (`scripts/renew_pa.py`).
+- **Docker**: `docker-compose.yml` provided for containerized deployment.
 
-- 灵感来自 [Telegra.ph](https://telegra.ph)
-- 最初基于 [vorniches/tapnote](https://github.com/vorniches/tapnote) 的概念
-- 评论系统由 [ParaNote](https://github.com/zoidberg-xgd/paranote) 提供支持
+## 🧪 Security & Anti-Abuse
+
+- **Rate Limiting**: Built-in protections against spam (configurable).
+- **Content Sanitization**: Markdown is rendered safely to prevent XSS.
+- **Timing Attack Protection**: Constant-time comparison for tokens.

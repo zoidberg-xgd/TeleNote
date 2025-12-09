@@ -1,10 +1,10 @@
 # 贡献指南
 
-感谢您对 TapNote 项目的关注！
+感谢您对 TeleNote 项目的关注！
 
 ## 🤝 如何贡献
 
-欢迎向本仓库提交 Pull Request 来改进 TapNote。我们欢迎以下类型的贡献：
+欢迎向本仓库提交 Pull Request 来改进 TeleNote。我们欢迎以下类型的贡献：
 - 新功能开发
 - Bug 修复
 - 文档改进

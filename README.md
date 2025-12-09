@@ -1,145 +1,108 @@
 # TeleNote
 
-[English](README.md) | [中文](README_CN.md) | [功能特性](FEATURES.md)
+[English](README.md) | [中文](README_CN.md) | [API Documentation](API.md)
 
-TeleNote is a minimalist, self-hosted publishing platform inspired by Telegra.ph, focusing on instant Markdown-based content creation. It provides a distraction-free writing experience with instant publishing capabilities, making it perfect for quick notes, blog posts, or documentation sharing.
-
-[**🔴 Live Demo**](https://zoidbergxgd.pythonanywhere.com/)
-
-**✨ Key Features:**
-- 📝 **Telegra.ph Experience**: Supports Title & Author fields, Short URLs
-- 🖼️ **Social Preview**: Beautiful preview cards for Telegram/Twitter/WeChat
-- 💬 **Comment System**: Paragraph-level comments with ParaNote integration
-- 👍 **Like Feature**: Like comments on notes
-- 📦 **Data Migration**: Import/Export notes as JSON
-- 🚀 **PythonAnywhere Deployment**: Automated deployment scripts
-- 🛠️ **Admin Panel**: Django admin interface for content management
-
-> See [FEATURES.md](FEATURES.md) for detailed features and improvements.
+**TeleNote** is a minimalist, self-hosted publishing platform inspired by [Telegra.ph](https://telegra.ph). It offers a distraction-free writing experience with instant Markdown publishing, paragraph-level comments, and a full-featured API.
 
 ![Demo](media/demo.gif)
 
-## Features
+[**🔴 Live Demo**](https://zoidbergxgd.pythonanywhere.com/)
 
-- **Minimalist Writing Experience**
-  - Clean, distraction-free Markdown editor
-  - No account required
-  - Instant publishing with a single click
-  - Support for full Markdown syntax
-  - Self-hosted: maintain full control over your content
+## ✨ Key Features
 
-- **Content Management**
-  - Unique URL for each post (**Optimized 8-char short links**)
-  - Support for **Title** and **Author** fields
-  - Automatic **Social Media Previews** (Open Graph)
-  - Edit functionality with secure tokens
-  - Proper rendering of all Markdown elements
-  - Support for images and code snippets
+- **📝 Minimalist Editor**: Clean, distraction-free Markdown editor. No account required.
+- **⚡ Instant Publishing**: Publish anonymous articles in seconds.
+- **🔌 Telegraph API Compatible**: Drop-in replacement for Telegra.ph. Compatible with existing Telegraph clients and bots.
+- **💬 Paragraph Comments**: Integrated with [ParaNote](https://github.com/zoidberg-xgd/paranote) for Medium-style paragraph-level comments.
+- **🖼️ Social Previews**: Automatic Open Graph tags for beautiful cards on Telegram, Twitter/X, and WeChat.
+- **🔗 Smart Links**: Optimized 8-character short URLs.
+- **📦 Data Ownership**: Self-hosted. Import/Export data as JSON.
+- **🚀 Easy Deployment**: Docker support and automated scripts for PythonAnywhere.
 
-- **Advanced Features**
-  - 💬 **Paragraph-level comments** with ParaNote integration
-  - 👍 **Like system** for comments
-  - 📦 **Data migration** (import/export JSON)
-  - 🚀 **PythonAnywhere deployment** automation
-  - 🧪 **Comprehensive testing** with CI/CD
-  - 🛠️ **Django admin** interface
+## 🚀 Quick Start
 
-## Quick Start
+### Using Docker (Recommended)
 
-1. Clone the repository:
-```bash
-git clone https://github.com/zoidberg-xgd/tapnote.git
-cd tapnote
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/zoidberg-xgd/tapnote.git
+   cd tapnote
+   ```
 
-2. Start the application using Docker:
-```bash
-chmod +x setup.sh
-./setup.sh
-```
+2. **Run the setup script**
+   ```bash
+   chmod +x setup.sh
+   ./setup.sh
+   ```
 
-3. Access TapNote at `http://localhost:9009`
+3. **Access the app**
+   Open your browser to `http://localhost:9009`.
 
-## Examples
+### Manual Installation
 
-```Markdown
-# Heading 1
-Some paragraph text here.
+1. Install dependencies: `pip install -r requirements.txt`
+2. Set up environment variables (copy `example.env` to `.env`).
+3. Run migrations: `python manage.py migrate`
+4. Start server: `python manage.py runserver 0.0.0.0:9009`
 
-![Image](https://themepreview.home.blog/wp-content/uploads/2019/07/boat.jpg)
+## 🛠 API Usage
 
-## Heading 2
-Another paragraph of text with some **bold** text, *italic* text, and ~~strikethrough~~ text.
+TeleNote implements a complete **Telegraph API** clone. You can use it to create pages, manage accounts, and get view statistics programmatically.
 
-### Heading 3
-1. An ordered list item
-2. Another ordered list item
+**Base URL**: `https://your-instance.com/`
 
-'```python
-# Some Python code snippet
-def greet(name):
-    return f"Hello, {name}!"
-```'
-
-#### Heading 4
-A quote block:
-> This is a blockquote!
-
-- Sub list item (unordered)
-- Sub list item (unordered)
-
-#### Table Example
-| Column A | Column B |
-|----------|----------|
-| Cell 1A  | Cell 1B  |
-| Cell 2A  | Cell 2B  |
-
-https://youtu.be/vz91QpgUjFc?si=6nTE2LeukJprXiw1
-```
-
-> Note: For correct rendering of code exmaple remove `'` symbols.
-
-## Limitations
-
-- **Content Size**: For system stability, individual notes are limited to 200,000 characters.
-- **Upload Size**: The system enforces a maximum upload size of 2.5MB.
-
-## Testing
-
-TapNote includes comprehensive unit and integration tests covering all major components.
-
-### Running Tests
+**Example: Create a Page**
 
 ```bash
-# Using Django's test runner
-python manage.py test
+curl -X POST https://your-instance.com/createPage \
+  -d access_token="your_token" \
+  -d title="My Post" \
+  -d content='[{"tag":"p","children":["Hello World"]}]' \
+  -d return_content=true
+```
 
-# Using the test script
+👉 **[Read the full API Documentation](API.md)**
+
+## ⚙️ Configuration
+
+Configuration is managed via the `.env` file.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DEBUG` | Enable debug mode | `False` |
+| `SECRET_KEY` | Django secret key | (Required) |
+| `ALLOWED_HOSTS` | Comma-separated hosts | `*` |
+| `ENABLE_COMMENTS` | Enable comment system | `True` |
+
+## 🧪 Testing
+
+TeleNote comes with a comprehensive test suite covering the core logic, API endpoints, and configuration.
+
+```bash
+# Run all tests
 ./run_tests.sh
 
-# With coverage report
+# Run with coverage report
 ./run_tests.sh --coverage
 ```
 
-## Contributing
+## 🤝 Contributing
 
-Feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-## License
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-[MIT License](LICENSE)
+## 📄 License
 
-## Acknowledgments
+Distributed under the MIT License. See `LICENSE` for more information.
 
-- Inspired by [Telegra.ph](https://telegra.ph)
-- Originally based on concepts from [vorniches/tapnote](https://github.com/vorniches/tapnote)
-- Built with Django and Tailwind CSS
-- Uses [Prototype](https://github.com/vorniches/prototype), [snap2txt](https://github.com/vorniches/snap2txt) and [Cursor](https://cursor.so)
-- Uses Space Mono font by Google Fonts
-- Comment system powered by [ParaNote](https://github.com/zoidberg-xgd/paranote)
+## 🙏 Acknowledgments
 
-## Support
-
-- Create an issue for bug reports or feature requests
-- Star the repository if you find it useful
-- Fork it to contribute or create your own version
+- **Telegra.ph**: The original inspiration.
+- **[vorniches/tapnote](https://github.com/vorniches/tapnote)**: The original project foundation.
+- **ParaNote**: Powering the comment system.
+- **Django & Tailwind**: The robust foundation.

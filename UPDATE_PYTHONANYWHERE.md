@@ -1,6 +1,6 @@
 # 更新 PythonAnywhere 部署指南
 
-本指南说明如何将本地代码更新推送到 PythonAnywhere 服务器。
+本指南说明如何将 TeleNote 的本地代码更新推送到 PythonAnywhere 服务器。
 
 ## 快速更新步骤
 

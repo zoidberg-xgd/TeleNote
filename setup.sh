@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Starting TapNote Local Deployment..."
+echo "🚀 Starting TeleNote Local Deployment..."
 
 # Check if Docker is running
 if ! docker info > /dev/null 2>&1; then

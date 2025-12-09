@@ -1,6 +1,6 @@
 # 部署到 PythonAnywhere 指南
 
-本指南将帮助您将 TapNote 部署到 PythonAnywhere 平台。
+本指南将帮助您将 TeleNote 部署到 PythonAnywhere 平台。
 
 ## 1. 准备工作
 
@@ -150,7 +150,7 @@ application = get_wsgi_application()
 
 回到页面顶部，点击绿色的 **Reload** 按钮。
 
-点击顶部的应用链接（例如 `https://<your-username>.pythonanywhere.com`），您的 TapNote 应该就可以访问了！
+点击顶部的应用链接（例如 `https://<your-username>.pythonanywhere.com`），您的 TeleNote 应该就可以访问了！
 
 ## 常见问题
 
