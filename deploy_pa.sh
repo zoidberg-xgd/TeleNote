@@ -1,15 +1,15 @@
 #!/bin/bash
 
-# TapNote Deployment Script for PythonAnywhere
+# TeleNote Deployment Script for PythonAnywhere
 # Usage: source deploy_pa.sh
 
 # Configuration
-REPO_URL="https://github.com/zoidberg-xgd/tapnote.git"
+REPO_URL="https://github.com/zoidberg-xgd/TeleNote.git"
 PROJECT_DIR="$HOME/tapnote"
 VENV_NAME="tapnote-venv"
 PYTHON_VERSION="python3.10"
 
-echo "🚀 Starting TapNote Deployment on PythonAnywhere..."
+echo "🚀 Starting TeleNote Deployment on PythonAnywhere..."
 
 # 1. Clone or Pull Repository
 if [ -d "$PROJECT_DIR" ]; then
