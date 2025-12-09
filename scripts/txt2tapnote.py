@@ -1,82 +1,45 @@
 import argparse
-import requests
 import os
 import sys
+from urllib.parse import urlparse
+
+try:
+    from telepress import TelegraphPublisher
+except ImportError:
+    print("❌ Error: 'telepress' package is not installed.")
+    print("👉 Please install it using 'pip install telepress'.")
+    sys.exit(1)
 
 def convert_txt_to_tapnote(file_path, server_url, public_domain=None):
-    print("⚠️  DEPRECATION WARNING: This script is deprecated.")
-    print("👉 Please use 'telepress' which is much more powerful.")
-    print("   Usage: telepress <file> --api-url <url>")
-    print("-" * 50)
-
     """
-    Reads a text file and posts it to TapNote to create a new page.
+    Reads a text file and posts it to TapNote (via telepress) to create a new page.
     """
     if not os.path.exists(file_path):
         print(f"❌ Error: File not found: {file_path}")
         return
 
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read()
-    except Exception as e:
-        print(f"❌ Error reading file: {e}")
-        return
-
-    if not content.strip():
-        print("❌ Error: File is empty.")
-        return
-
-    publish_url = f"{server_url.rstrip('/')}/publish/"
+    print(f"🚀 Publishing '{file_path}' using telepress...")
     
-    print(f"📤 Uploading '{file_path}' to {publish_url}...")
-
     try:
-        # Send POST request
-        # allow_redirects=False to capture the 302 Location header directly
-        response = requests.post(publish_url, data={'content': content}, allow_redirects=False)
+        # Initialize publisher with custom API URL
+        publisher = TelegraphPublisher(api_url=server_url)
         
-        if response.status_code == 302:
-            location = response.headers.get('Location')
-            # Location is likely relative, e.g., '/<hashcode>/'
-            
-            base_url = public_domain.rstrip('/') if public_domain else server_url.rstrip('/')
-            
-            if location.startswith('http'):
-                # If server returned full URL, and we want to force a domain
-                if public_domain:
-                    # Replace protocol and domain
-                    # Simple way: split by / and replace first part?
-                    # Or just use hashcode if we can extract it.
-                    # location format: http://host/hash/
-                    parts = location.split('/')
-                    # parts[-2] should be hashcode if ends with /
-                    # http://host/hash/ -> ['http:', '', 'host', 'hash', '']
-                    if len(parts) >= 4:
-                         # Reconstruct using public_domain + path
-                         path = '/' + '/'.join(parts[3:])
-                         full_url = f"{base_url}{path}"
-                    else:
-                         full_url = location # Fallback
-                else:
-                    full_url = location
-            else:
-                full_url = f"{base_url}{location}"
-            
-            print(f"✅ Successfully published!")
-            print(f"🔗 URL: {full_url}")
-            
-        elif response.status_code == 200:
-            # If it didn't redirect, maybe it returned the editor with an error (e.g. too long)
-            print(f"⚠️  Server returned 200 OK (did not redirect). Check for errors.")
-            if "Error!" in response.text:
-                print("   Server reported an error in the response HTML.")
+        # Publish the file
+        url = publisher.publish(file_path)
+        
+        # Handle public_domain replacement if provided
+        if public_domain:
+            parsed = urlparse(url)
+            base_url = public_domain.rstrip('/')
+            full_url = f"{base_url}{parsed.path}"
         else:
-            print(f"❌ Failed to publish. Status Code: {response.status_code}")
-            print(f"   Response: {response.text[:200]}...")
+            full_url = url
+            
+        print(f"✅ Successfully published!")
+        print(f"🔗 URL: {full_url}")
 
     except Exception as e:
-        print(f"❌ Request failed: {e}")
+        print(f"❌ Publish failed: {e}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert a text file to a TapNote page.")

@@ -1,6 +1,6 @@
 # TeleNote
 
-[English](README.md) | [中文](README_CN.md) | [API Documentation](API.md)
+[English](README.md) | [中文](README_CN.md) | [Documentation](docs/)
 
 **TeleNote** is a minimalist, self-hosted publishing platform inspired by [Telegra.ph](https://telegra.ph). It offers a distraction-free writing experience with instant Markdown publishing, paragraph-level comments, and a full-featured API.
 
@@ -25,7 +25,7 @@
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/zoidberg-xgd/tapnote.git
+   git clone https://github.com/zoidberg-xgd/TeleNote.git
    cd tapnote
    ```
 
@@ -61,7 +61,7 @@ curl -X POST https://your-instance.com/createPage \
   -d return_content=true
 ```
 
-👉 **[Read the full API Documentation](API.md)**
+👉 **[Read the full API Documentation](docs/api.md)**
 
 ## 📦 CLI Tools
 
@@ -72,6 +72,12 @@ You can publish content directly using **[TelePress](https://github.com/zoidberg
 
 ```bash
 telepress my_article.md --api-url http://localhost:9009
+```
+
+Alternatively, you can use the helper script `scripts/txt2tapnote.py` which wraps TelePress and provides additional features like domain replacement:
+
+```bash
+python scripts/txt2tapnote.py my_article.md --server http://localhost:9009 --domain https://mynote.com
 ```
 
 This supports:
@@ -104,13 +110,7 @@ TeleNote comes with a comprehensive test suite covering the core logic, API endp
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+Contributions are welcome! See [Contributing Guide](docs/contributing.md) for details.
 
 ## 📄 License
 

@@ -1,6 +1,6 @@
 # TeleNote
 
-[English](README.md) | [中文](README_CN.md) | [API 文档](API.md)
+[English](README.md) | [中文](README_CN.md) | [文档](docs/)
 
 **TeleNote** 是一个极简的自托管发布平台，灵感来自 [Telegra.ph](https://telegra.ph)。它提供无干扰的写作体验，支持即时 Markdown 发布、段落级评论，并拥有功能完善的 API。
 
@@ -25,7 +25,7 @@
 
 1. **克隆仓库**
    ```bash
-   git clone https://github.com/zoidberg-xgd/tapnote.git
+   git clone https://github.com/zoidberg-xgd/TeleNote.git
    cd tapnote
    ```
 
@@ -61,7 +61,7 @@ curl -X POST https://your-instance.com/createPage \
   -d return_content=true
 ```
 
-👉 **[阅读完整 API 文档](API.md)**
+👉 **[阅读完整 API 文档](docs/api.md)**
 
 ## 📦 命令行工具
 
@@ -72,6 +72,12 @@ curl -X POST https://your-instance.com/createPage \
 
 ```bash
 telepress my_article.md --api-url http://localhost:9009
+```
+
+或者，您可以使用辅助脚本 `scripts/txt2tapnote.py`，它封装了 TelePress 并提供域名替换等额外功能：
+
+```bash
+python scripts/txt2tapnote.py my_article.md --server http://localhost:9009 --domain https://mynote.com
 ```
 
 支持功能：
@@ -104,13 +110,7 @@ TeleNote 附带了全面的测试套件，覆盖核心逻辑、API 端点和配�
 
 ## 🤝 贡献
 
-欢迎贡献！请随时提交 Pull Request。
-
-1. Fork 本项目
-2. 创建您的特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+欢迎贡献！详见 [贡献指南](docs/contributing.md)。
 
 ## 📄 许可证
 

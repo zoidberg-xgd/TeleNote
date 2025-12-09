@@ -48,7 +48,7 @@ TeleNote integrates **ParaNote**, a paragraph-level commenting system.
 ## 🔌 API
 
 TeleNote provides a **Telegraph-compatible API**.
-See [API.md](API.md) for full documentation.
+See [api.md](api.md) for full documentation.
 
 Supported methods:
 - `createAccount`, `editAccountInfo`, `getAccountInfo`, `revokeAccessToken`
