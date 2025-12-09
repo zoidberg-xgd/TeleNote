@@ -4,6 +4,11 @@ import os
 import sys
 
 def convert_txt_to_tapnote(file_path, server_url, public_domain=None):
+    print("⚠️  DEPRECATION WARNING: This script is deprecated.")
+    print("👉 Please use 'telepress' which is much more powerful.")
+    print("   Usage: telepress <file> --api-url <url>")
+    print("-" * 50)
+
     """
     Reads a text file and posts it to TapNote to create a new page.
     """

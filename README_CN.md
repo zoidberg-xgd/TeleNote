@@ -63,6 +63,22 @@ curl -X POST https://your-instance.com/createPage \
 
 👉 **[阅读完整 API 文档](API.md)**
 
+## 📦 命令行工具
+
+您可以使用 **[TelePress](https://github.com/zoidberg-xgd/telepress)** (通过 pip 安装) 在命令行中直接发布内容。
+
+1. 安装 TelePress：`pip install telepress`
+2. 发布文件：
+
+```bash
+telepress my_article.md --api-url http://localhost:9009
+```
+
+支持功能：
+- 长文章自动分页
+- 图片上传
+- Zip 文件相册
+
 ## ⚙️ 配置
 
 通过 `.env` 文件进行配置。

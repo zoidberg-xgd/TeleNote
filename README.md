@@ -63,6 +63,22 @@ curl -X POST https://your-instance.com/createPage \
 
 👉 **[Read the full API Documentation](API.md)**
 
+## 📦 CLI Tools
+
+You can publish content directly using **[TelePress](https://github.com/zoidberg-xgd/telepress)** (installed via pip).
+
+1. Install TelePress: `pip install telepress`
+2. Publish a file:
+
+```bash
+telepress my_article.md --api-url http://localhost:9009
+```
+
+This supports:
+- Automatic pagination for long articles
+- Image uploading
+- Zip file galleries
+
 ## ⚙️ Configuration
 
 Configuration is managed via the `.env` file.
