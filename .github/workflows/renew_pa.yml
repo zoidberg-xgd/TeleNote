@@ -25,7 +25,7 @@ jobs:
           install-chromedriver: true
 
       - name: Install dependencies
-        run: pip install selenium
+        run: pip install selenium webdriver-manager
 
       - name: Run renewal script
         env:
